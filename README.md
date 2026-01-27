@@ -44,11 +44,14 @@ MediaPipe Pose を中心に、Web 技術（HTML / CSS / JavaScript）と Python 
 
 ```
 Posture-Guard-AI
-├─ app/
-│  ├─ static/        # CSS / JS / 画像
-│  ├─ templates/     # HTML テンプレート
-│  ├─ main.py        # Flask / FastAPI エントリーポイント
-│  └─ posture.py     # 姿勢解析ロジック
+├─ app/                 # アプリケーションコード
+│  ├─ static/           # CSS / JS / 画像
+│  ├─ templates/        # HTML テンプレート
+│  ├─ app.py            # Flask / FastAPI エントリーポイント
+|  ├─ database.db       # SQLite データベース（必要に応じて）
+├─ ├─ config.py         # SQLiteの設定ファイル
+├─ ├─ extensions.py     # Flask 拡張機能の初期化
+│  └─ posture_check.py  # 姿勢解析ロジック
 ├─ LICENSE
 └─ README.md
 ```
