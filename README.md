@@ -49,7 +49,6 @@ Posture-Guard-AI
 │  ├─ templates/     # HTML テンプレート
 │  ├─ main.py        # Flask / FastAPI エントリーポイント
 │  └─ posture.py     # 姿勢解析ロジック
-├─ .vscode/          # VSCode 設定
 ├─ LICENSE
 └─ README.md
 ```
