@@ -87,7 +87,7 @@ source venv/bin/activate # macOS / Linux
 ### 4️⃣ アプリ起動
 
 ```bash
-python app/main.py
+python app/app.py
 ```
 
 ブラウザで以下にアクセス：
