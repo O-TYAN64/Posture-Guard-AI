@@ -127,4 +127,4 @@ http://localhost:5000
 
 ## 📄 ライセンス
 
-MI
+MIT License
