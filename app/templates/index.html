@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Posture Guard AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<section class="login-box">
+{% if current_user.is_authenticated %}
+<p>ログイン中：{{ current_user.username }}</p>
+<a href="{{ url_for('auth.logout') }}">ログアウト</a>
+{% else %}
+<a href="/register">新規登録</a>
+{% endif %}
+</section>
+<header>
+  <h1>Posture Guard AI</h1>
+  <p>AIがあなたの姿勢をリアルタイムでチェックします</p>
+</header>
+
+<main class="container">
+  <section class="cam era-box">
+    <video id="camera" autoplay muted></video>
+  </section>
+
+  <section class="status-box">
+    <div id="posture" class="posture good">NONE</div>
+    <div id="score">NONE</div>
+    <p id="message">NONE</p>
+    {% if current_user.is_authenticated %}
+    <button id="startBtn">計測開始</button>
+    {% else %}
+    <p>計測を開始するには<a href="/login">ログイン</a>してください。</p>
+    {% endif %}
+  </section>
+</main>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+from flask import Flask, request,  render_template, jsonify
+import os
+import cv2
+import numpy as np
+from flask_sqlalchemy import SQLAlchemy
+from posture_check import PosePostureAnalyzer, PostureConfig
+from config import Config
+from routes.auth import auth
+from extensions import db, login_manager
+from models.problem import Problem
+from models.user import User
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# =========================
+# Flask 初期化
+# =========================
+app = Flask(__name__)
+app.config.from_object(Config)
+
+db.init_app(app)
+login_manager.init_app(app)
+
+# -----------------------------
+# Login Manager
+# -----------------------------
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+# -----------------------------
+# Blueprint 登録
+# -----------------------------
+app.register_blueprint(auth)
+
+# -----------------------------
+# DB 初期化
+# -----------------------------
+with app.app_context():
+    db.create_all()
+# =========================
+# 姿勢解析器 初期化
+# （※ アプリ起動時に1回だけ）
+# =========================
+
+
+MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "static",
+    "models",
+    "pose_landmarker_full.task"
+)
+
+analyzer = PosePostureAnalyzer(MODEL_PATH, PostureConfig())
+
+
+@app.route("/")
+def index():
+    problems = Problem.query.all()
+    return render_template("index.html", problems=problems)
+
+@app.route("/problem/<int:id>")
+def show_problem(id):
+    p = Problem.query.get(id)
+    return render_template("problem.html", problem=p)
+
+@app.route("/debug")
+def debug():
+    return render_template("debug.html")
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    file = request.files.get("image")
+    if not file:
+        return jsonify({"error": "no image"}), 400
+
+    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
+    metrics = analyzer.analyze(img)
+
+    if metrics is None:
+        return jsonify({"posture": "unknown"})
+
+    posture = analyzer.judge(metrics)
+
+    return jsonify({
+        "posture": posture,
+        "metrics": {k: round(v, 3) for k, v in metrics.items()},
+        "baseline": None if analyzer.baseline is None else analyzer.baseline.__dict__
+    })
+
+
+@app.route("/calibrate", methods=["POST"])
+def calibrate():
+    file = request.files.get("image")
+    if not file:
+        return jsonify({"error": "no image"}), 400
+
+    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
+    metrics = analyzer.analyze(img)
+
+    if metrics is None:
+        return jsonify({"error": "no pose detected"}), 400
+
+    analyzer.calibrate(metrics)
+
+    return jsonify({
+        "status": "calibrated",
+        "baseline": {k: round(v, 3) for k, v in metrics.items()}
+    })
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Posture DEBUG (Skeleton)</title>
+    <style>
+    body {
+        font-family: monospace;
+        background: #111;
+        color: #eee;
+        text-align: center;
+    }
+    .wrapper {
+        position: relative;
+        display: inline-block;
+    }
+    video, canvas {
+        width: 640px;
+        height: 480px;
+        border-radius: 8px;
+    }
+    canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+    }
+    pre {
+        text-align: left;
+        background: #000;
+        color: #0f0;
+        padding: 10px;
+        max-width: 640px;
+        margin: 20px auto;
+        height: 260px;
+        overflow: auto;
+    }
+    </style>
+</head>
+<body>
+
+<h1>Posture Analyzer DEBUG</h1>
+
+<div class="wrapper">
+    <video id="camera" autoplay muted></video>
+    <canvas id="overlay"></canvas>
+</div>
+
+<br>
+<button id="startBtn">START</button>
+
+<p>Posture: <span id="posture">---</span> /Score: <span id="score">0</span>%</p>
+
+<pre id="json"></pre>
+
+<script>
+const video = document.getElementById("camera");
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+
+const postureEl = document.getElementById("posture");
+const scoreEl = document.getElementById("score");
+const jsonEl = document.getElementById("json");
+
+document.getElementById("startBtn").onclick = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+
+    video.onloadedmetadata = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+    };
+
+    setInterval(captureAndSend, 1000);
+};
+
+function captureAndSend() {
+    if (!video.videoWidth) return;
+
+    const tmp = document.createElement("canvas");
+    tmp.width = video.videoWidth;
+    tmp.height = video.videoHeight;
+    tmp.getContext("2d").drawImage(video, 0, 0);
+
+    fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: tmp.toDataURL("image/jpeg") })
+    })
+    .then(res => res.json())
+    .then(updateUI);
+}
+
+function updateUI(data) {
+    postureEl.textContent = data.posture;
+    scoreEl.textContent = data.score;
+    jsonEl.textContent = JSON.stringify(data, null, 2);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!data.debug || !data.debug.draw) return;
+
+    const draw = data.debug.draw;
+
+    drawPoint(draw.left_shoulder, "cyan");
+    drawPoint(draw.right_shoulder, "cyan");
+    drawPoint(draw.head, "yellow");
+
+    drawLine(draw.left_shoulder, draw.right_shoulder, "lime");
+    drawLine(draw.head, mid(draw.left_shoulder, draw.right_shoulder), "red");
+}
+
+function drawPoint(p, color) {
+  const x = p[0] * canvas.width;
+  const y = p[1] * canvas.height;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawLine(p1, p2, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(p1[0] * canvas.width, p1[1] * canvas.height);
+    ctx.lineTo(p2[0] * canvas.width, p2[1] * canvas.height);
+    ctx.stroke();
+}
+
+function mid(a, b) {
+    return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+}
+</script>
+
+</body>
+</html>

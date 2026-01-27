@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ログイン</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+<div class="login-box">
+  <h1>ログイン</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post">
+    <input name="username" placeholder="ユーザー名"><br>
+    <input name="password" type="password" placeholder="パスワード"><br>
+    <button type="submit">ログイン</button>
+  </form>
+
+  <a href="/register">新規登録</a><br>
+  {% if current_user.is_authenticated and current_user.is_admin %}
+  <a href="/admin/problems">管理画面</a>
+  {% endif %}
+</div>
+
+</body>
+</html>
