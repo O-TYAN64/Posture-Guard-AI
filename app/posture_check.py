@@ -12,6 +12,19 @@ from mediapipe.tasks.python import vision as mp_vision
 # Config / Baseline
 # =========================
 
+POSE_CONNECTIONS = [
+    (11, 13), (13, 15),  # 左肩-左肘-左手首
+    (12, 14), (14, 16),  # 右肩-右肘-右手首
+    (11, 12),            # 左肩-右肩
+    (11, 23), (12, 24),  # 肩-同側の腰
+    (23, 24),            # 左腰-右腰
+    (23, 25), (25, 27),  # 左腰-左膝-左足首
+    (24, 26), (26, 28),  # 右腰-右膝-右足首
+    (27, 29), (29, 31),  # 左足首-左踵-左つま先
+    (28, 30), (30, 32),  # 右足首-右踵-右つま先
+    (0, 11), (0, 12),    # 鼻-左右肩（簡易首）
+]
+
 @dataclass
 class PostureConfig:
     torso_angle_thr: float = 8.0      # 体幹前後傾（推奨10°）
@@ -119,7 +132,21 @@ class PosePostureAnalyzer:
     def _angle_from_horizontal(v):
         return math.degrees(math.atan2(v[1], v[0]))  # Y vs X
 
-    # =========================
+    @staticmethod
+    def _lm_list_to_dicts(lms):
+        """MediaPipeのランドマーク配列を JSON 可能な list[dict] に変換"""
+        out = []
+        for lm in lms:
+            out.append({
+                "x": float(lm.x),
+                "y": float(lm.y),
+                "z": float(lm.z),
+                # visibility/presence が付く場合のみ取得（無ければ 0.0）
+                "visibility": float(getattr(lm, "visibility", 0.0)),
+                "presence": float(getattr(lm, "presence", 0.0))
+            })
+        return out
+
     def analyze(self, frame_bgr):
         self._tick()
 
@@ -127,71 +154,69 @@ class PosePostureAnalyzer:
         mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
         res = self.detector.detect_for_video(mp_img, self._ts)
 
+        # 人がいない
         if not res.pose_world_landmarks:
             self._locked_center = None
             return None
 
-        lm = res.pose_world_landmarks[0]
+        lm_world = res.pose_world_landmarks[0]      # 3D（m単位）
+        lm_image = res.pose_landmarks[0] if res.pose_landmarks else None  # 2D（0..1）
 
         NOSE = 0
         L_SH, R_SH = 11, 12
         L_HIP, R_HIP = 23, 24
 
-        p = lambda i: np.array([lm[i].x, lm[i].y, lm[i].z])
+        p = lambda i: np.array([lm_world[i].x, lm_world[i].y, lm_world[i].z])
 
         shoulder = (p(L_SH) + p(R_SH)) * 0.5
-        hip = (p(L_HIP) + p(R_HIP)) * 0.5
-        head = p(NOSE)
+        hip      = (p(L_HIP) + p(R_HIP)) * 0.5
+        head     = p(NOSE)
 
-        # =========================
-        # 人ロック判定
-        # =========================
+        # ---- 人ロック判定 ----
         center = shoulder
-
         if self._locked_center is None:
             self._locked_center = center
         else:
             dist = np.linalg.norm(center - self._locked_center)
             if dist > self._lock_dist_thr:
-                return None  # 別人と判断
-
+                return None  # 別人
         self._locked_center = center
 
-        # =========================
-        # 体幹前後傾
-        # =========================
+        # ---- 角度計算 ----
         torso_vec = shoulder - hip
         if np.linalg.norm(torso_vec) < 1e-4:
             return None
         torso_angle = self._angle_from_vertical(torso_vec)
 
-        # =========================
-        # 首前傾
-        # =========================
         neck_vec = head - shoulder
         if np.linalg.norm(neck_vec) < 1e-4:
             return None
         neck_angle = self._angle_from_vertical(neck_vec)
 
-        # =========================
-        # 肩傾き
-        # =========================
         shoulder_vec = p(L_SH) - p(R_SH)
         shoulder_tilt = self._angle_from_horizontal(shoulder_vec)
 
-        # =========================
-        # EMA
-        # =========================
-        torso_angle = self.ema_torso.update(torso_angle)
-        neck_angle = self.ema_neck.update(neck_angle)
-        shoulder_tilt = self.ema_tilt.update(shoulder_tilt)
+        # ---- EMA ----
+        torso_angle    = self.ema_torso.update(torso_angle)
+        neck_angle     = self.ema_neck.update(neck_angle)
+        shoulder_tilt  = self.ema_tilt.update(shoulder_tilt)
 
-        return {
-            "torso_angle": torso_angle,
-            "neck_angle": neck_angle,
-            "shoulder_tilt": shoulder_tilt
+        # ---- ここから「骨格データ」を組み立てて返す ----
+        metrics = {
+            "torso_angle": float(torso_angle),
+            "neck_angle": float(neck_angle),
+            "shoulder_tilt": float(shoulder_tilt)
         }
 
+        landmarks_2d = self._lm_list_to_dicts(lm_image) if lm_image else None
+        landmarks_3d = self._lm_list_to_dicts(lm_world)
+
+        return {
+            "metrics": metrics,                # 角度（EMA済み）
+            "landmarks": landmarks_2d,         # 画像座標（0..1 正規化）
+            "world_landmarks": landmarks_3d,   # ワールド座標（m 単位）
+            "connections": POSE_CONNECTIONS    # 接続エッジ（描画用）
+        }
         
 
     # =========================
@@ -199,6 +224,56 @@ class PosePostureAnalyzer:
         self.reset_ema()
         self.baseline = PostureBaseline(**metrics_avg)
 
+    # 追加: 骨格（ランドマーク＋接続線）を描画する関数
+    def draw_skeleton_on_frame(frame_bgr, res, landmark_color=(0, 255, 0), connection_color=(0, 200, 255)):
+        """
+        frame_bgr: np.ndarray (H, W, 3) BGR
+        res: PoseLandmarkerResult（self.detector.detect_for_video の戻り値）
+        """
+        if not res.pose_landmarks:
+            return frame_bgr
+
+        h, w = frame_bgr.shape[:2]
+        lm = res.pose_landmarks[0]  # 画像座標に正規化されたランドマーク（x,y in [0,1]）
+
+        # 画像座標へ変換
+        def to_px(pt):
+            x = int(pt.x * w)
+            y = int(pt.y * h)
+            return x, y
+
+        # 主要な接続の定義（MediaPipe Pose の代表的なエッジ）
+        # 参考: POSE_CONNECTIONS に近いセット
+        C = [
+            # 腕
+            (11, 13), (13, 15),  # 左肩-左肘-左手首
+            (12, 14), (14, 16),  # 右肩-右肘-右手首
+            # 上半身（肩）
+            (11, 12),            # 左肩-右肩
+            # 体幹
+            (11, 23), (12, 24),  # 肩-同側の腰
+            (23, 24),            # 左腰-右腰
+            # 脚
+            (23, 25), (25, 27),  # 左腰-左膝-左足首
+            (24, 26), (26, 28),  # 右腰-右膝-右足首
+            # 足先
+            (27, 29), (29, 31),  # 左足首-左踵-左つま先
+            (28, 30), (30, 32),  # 右足首-右踵-右つま先
+            # 顔～首
+            (0, 11), (0, 12),    # 鼻-左右肩（簡易な首の表現）
+        ]
+        # ランドマーク点
+        for pt in lm:
+            x, y = to_px(pt)
+            cv2.circle(frame_bgr, (x, y), 3, landmark_color, thickness=-1, lineType=cv2.LINE_AA)
+
+        # 接続線
+        for a, b in C:
+            xa, ya = to_px(lm[a])
+            xb, yb = to_px(lm[b])
+            cv2.line(frame_bgr, (xa, ya), (xb, yb), connection_color, thickness=2, lineType=cv2.LINE_AA)
+
+        return frame_bgr
     # =========================
     def judge(self, m):
         if self.baseline is None:

@@ -69,25 +69,35 @@ def show_problem(id):
 def debug():
     return render_template("debug.html")
 
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    file = request.files.get("image")
-    if not file:
-        return jsonify({"error": "no image"}), 400
 
-    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
-    metrics = analyzer.analyze(img)
+@app.post("/analyze")
+def analyze_route():
+    file = request.files.get("image", None)
+    if file is None:
+        return jsonify({"posture": "unknown"}), 400
 
-    if metrics is None:
+    file_bytes = np.frombuffer(file.read(), np.uint8)
+    frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if frame is None:
+        return jsonify({"posture": "unknown"}), 400
+
+    out = analyzer.analyze(frame)
+    if out is None:
         return jsonify({"posture": "unknown"})
 
-    posture = analyzer.judge(metrics)
+    # 姿勢判定
+    posture = analyzer.judge(out["metrics"])
 
+    # （必要ならサーバー側で骨格を描画して、MJPEG で配信も可。
+    #  ここでは JSON でランドマークを返すだけ）
     return jsonify({
-        "posture": posture,
-        "metrics": {k: round(v, 3) for k, v in metrics.items()},
-        "baseline": None if analyzer.baseline is None else analyzer.baseline.__dict__
+        "posture": posture,          # "good" / "bad"
+        "metrics": out["metrics"],   # 角度
+        "landmarks": out["landmarks"],           # 2D（0..1）
+        "world_landmarks": out["world_landmarks"], # 3D（m）
+        "connections": out["connections"]        # エッジ
     })
+
 
 
 @app.route("/calibrate", methods=["POST"])

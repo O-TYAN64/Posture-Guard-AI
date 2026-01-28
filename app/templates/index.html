@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <link rel="shortcut icon" href="{{ url_for('static', filename='models/favicon.ico') }}">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
   <title>Posture Guard AI</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -34,10 +35,13 @@
   <section class="status-box">
     <div id="posture" class="posture">OFF</div>
     <div id="score">-</div>
+    <div class="mono" id="msg"></div>
     <p id="message">カメラはオフです</p>
 
     {% if current_user.is_authenticated %}
       <div class="button-group">
+        <button id="skeletonBtn" class="muted">骨格表示モード OFF</button>
+        <button id="clearBtn" class="danger">オーバーレイ消去</button>
         <button id="startBtn">計測開始</button>
         <button id="privacyBtn">プライバシーモード OFF</button>
         <button id="toggleCameraBtn">カメラをオン</button>
