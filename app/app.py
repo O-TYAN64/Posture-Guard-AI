@@ -70,8 +70,10 @@ def debug():
     return render_template("debug.html")
 
 
+
+
 @app.post("/analyze")
-def analyze_route():
+def analyze():
     file = request.files.get("image", None)
     if file is None:
         return jsonify({"posture": "unknown"}), 400
@@ -83,20 +85,22 @@ def analyze_route():
 
     out = analyzer.analyze(frame)
     if out is None:
-        return jsonify({"posture": "unknown"})
+        # 人なし（pose_world_landmarksなし）
+        return jsonify({"posture": "unknown", "landmarks": []})
 
-    # 姿勢判定
     posture = analyzer.judge(out["metrics"])
 
-    # （必要ならサーバー側で骨格を描画して、MJPEG で配信も可。
-    #  ここでは JSON でランドマークを返すだけ）
+    # 2Dランドマークがないフレームのケア（描画しないがUIは更新可能）
+    landmarks_2d = out["landmarks"] if out["landmarks"] is not None else []
+
     return jsonify({
-        "posture": posture,          # "good" / "bad"
-        "metrics": out["metrics"],   # 角度
-        "landmarks": out["landmarks"],           # 2D（0..1）
-        "world_landmarks": out["world_landmarks"], # 3D（m）
-        "connections": out["connections"]        # エッジ
+        "posture": posture,                    # "good" / "bad"
+        "metrics": out["metrics"],
+        "landmarks": landmarks_2d,             # ← None の代わりに []
+        "world_landmarks": out["world_landmarks"],
+        "connections": out["connections"]
     })
+
 
 
 
@@ -107,18 +111,19 @@ def calibrate():
         return jsonify({"error": "no image"}), 400
 
     img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
-    metrics = analyzer.analyze(img)
-
-    if metrics is None:
+    out = analyzer.analyze(img)
+    
+    if out is None:
         return jsonify({"error": "no pose detected"}), 400
-
-    analyzer.calibrate(metrics)
-
+    
+    analyzer.calibrate(out["metrics"])  # ← metrics だけ渡す
+    
     return jsonify({
         "status": "calibrated",
-        "baseline": {k: round(v, 3) for k, v in metrics.items()}
+        "baseline": {k: round(v, 3) for k, v in out["metrics"].items()}
     })
 
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True, threaded=True)
