@@ -12,7 +12,7 @@ let stream = null;
 let cameraOn = false;
 let streaming = false;
 let intervalId = null;
-let privacyOn = false;
+let privacyOn = true;
 
 
 
@@ -155,7 +155,7 @@ function notifyPosture(message) {
 
     new Notification("Posture Guard AI", {
         body: message,
-        icon: "/static/icon.png"
+        icon: "/static/models/favicon.ico"
     });
 }
 
