@@ -215,3 +215,4 @@ class PosePostureAnalyzer:
             )
 
         return "bad" if bad else "good"
+
