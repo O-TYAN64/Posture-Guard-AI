@@ -14,9 +14,9 @@ from mediapipe.tasks.python import vision as mp_vision
 
 @dataclass
 class PostureConfig:
-    torso_angle_thr: float = 10.0      # 体幹前後傾（推奨10°）
-    neck_angle_thr: float = 5.0        # 首前傾（厳しめ）
-    shoulder_tilt_thr: float = 10.0     # 肩傾き
+    torso_angle_thr: float = 8.0      # 体幹前後傾（推奨10°）
+    neck_angle_thr: float = 9.0        # 首前傾（厳しめ）
+    shoulder_tilt_thr: float = 7.0     # 肩傾き
     ema_alpha: float = 0.25
 
 
