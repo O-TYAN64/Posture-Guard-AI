@@ -216,3 +216,9 @@ startBtn.onclick = async () => {
                 : "キャリブレーション失敗 ❌";
     }
 };
+
+window.addEventListener("DOMContentLoaded", () => {
+    privacyOn = true;
+    cameraBox.classList.add("privacy");
+    privacyBtn.textContent = "プライバシーモード ON";
+});
