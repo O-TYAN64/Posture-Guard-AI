@@ -68,10 +68,13 @@ MediaPipe Pose による人体推定をベースに、
 - 姿勢コメント  
 
 </div>
-
+<p>
 <img src="images/demo.png" width="420">
-
+</P>
 </div>
+
+※ 画面のUI/UXは今後変更される可能性があります。
+
 
 ---
 
