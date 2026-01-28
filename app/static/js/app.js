@@ -7,6 +7,7 @@ const toggleBtn = document.getElementById("toggleCameraBtn");
 const privacyBtn = document.getElementById("privacyBtn");
 const cameraBox = document.querySelector(".camera-box");
 
+
 let stream = null;
 let cameraOn = false;
 let streaming = false;
