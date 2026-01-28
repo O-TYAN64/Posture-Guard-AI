@@ -84,11 +84,28 @@ header p {
 
 /* カメラ映像 */
 .camera-box {
-    flex: 2.5;
-    min-width: 300px;
-    background: #000;
-    border-radius: 16px;
+    width: 100%;
+    max-width: 640px;
+    background: black;
     overflow: hidden;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;      /* 縦中央 */
+    justify-content: center;  /* 横中央 */
+}
+
+
+.camera-box video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+}
+
+/* プライバシーモード */
+.privacy video {
+    filter: blur(20px);
 }
 
 video {
@@ -175,4 +192,18 @@ button:hover {
     .status-box {
         padding: 24px 16px;
     }
+}
+
+/* =========================
+   ボタングループ
+========================= */
+.button-group {
+    display: flex;
+    flex-direction: column; /* ← 縦並び */
+    gap: 16px;              /* ← ボタン間の余白 */
+    width: 100%;
+}
+
+.button-group button {
+    width: 100%;            /* ← 横幅を揃える */
 }

@@ -7,34 +7,50 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+
 <section class="login-box">
 {% if current_user.is_authenticated %}
-<p>ログイン中：{{ current_user.username }}</p>
-<a href="{{ url_for('auth.logout') }}">ログアウト</a>
+  <p>ログイン中：{{ current_user.username }}</p>
+  <a href="{{ url_for('auth.logout') }}">ログアウト</a>
 {% else %}
-<a href="/register">新規登録</a>
+  <a href="/register">新規登録</a>
 {% endif %}
 </section>
+
 <header>
   <h1>Posture Guard AI</h1>
   <p>AIがあなたの姿勢をリアルタイムでチェックします</p>
 </header>
 
 <main class="container">
-  <section class="cam era-box">
-    <video id="camera" autoplay muted></video>
+
+  <!-- ===== カメラ表示 ===== -->
+  <section class="camera-box">
+    <video id="camera" autoplay muted playsinline>
+    </video>
   </section>
 
+  <!-- ===== 状態表示 ===== -->
   <section class="status-box">
-    <div id="posture" class="posture good">NONE</div>
-    <div id="score">NONE</div>
-    <p id="message">NONE</p>
+    <div id="posture" class="posture">OFF</div>
+    <div id="score">-</div>
+    <p id="message">カメラはオフです</p>
+
     {% if current_user.is_authenticated %}
-    <button id="startBtn">計測開始</button>
+      <div class="button-group">
+        <button id="startBtn">計測開始</button>
+        <button id="privacyBtn">プライバシーモード OFF</button>
+        <button id="toggleCameraBtn">カメラをオン</button>
+      </div>
     {% else %}
-    <p>計測を開始するには<a href="/login">ログイン</a>してください。</p>
+      <p>
+        計測を開始するには
+        <a href="/login">ログイン</a>
+        してください。
+      </p>
     {% endif %}
   </section>
+
 </main>
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
