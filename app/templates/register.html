@@ -7,23 +7,40 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 <body>
-<div class="login-box">
-  <h1>新規登録</h1>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  <!-- 左：ブルーパネル -->
+  <div class="left-panel">
+    <div class="left-content">
+      <img src="{{ url_for('static', filename='models/favicon.ico') }}" class="logo">
+      <h2>アカウントを作成</h2>
+      <p>
+        Posture Guard AI<br>
+        新規ユーザー登録
+      </p>
+    </div>
+  </div>
 
-  <form method="post">
-    <input name="username" placeholder="ユーザー名"><br>
-    <input name="password" type="password" placeholder="パスワード"><br>
-    <button type="submit">登録</button>
-  </form>
-  <p><a href="{{ url_for('auth.login') }}">ログインへ</a></p>
-</div>
+  <!-- 右：登録フォーム -->
+  <div class="login-box">
+    <h1>新規登録</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post">
+      <input name="username" placeholder="ユーザー名"><br>
+      <input name="password" type="password" placeholder="パスワード（6-8桁の英数字/記号）"><br>
+      <button class="btn-register" type="submit">登録</button>
+    </form>
+
+    <h3 align="center">すでにアカウントをお持ちですか？</h3>
+    <button class="btn-login" onclick="location.href='/login'">ログイン</button>
+  </div>
+
 </body>
 </html>

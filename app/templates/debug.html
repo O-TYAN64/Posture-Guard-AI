@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <link rel="shortcut icon" href="{{ url_for('static', filename='models/favicon.ico') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/debug.css') }}">
   <title>Posture DEBUG (Skeleton)</title>
   <style>
     body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -28,10 +30,9 @@
 <button id="cal">計測開始</button>
 <button id="startBtn">START</button>
 <br>
-<p><a href="/">ホーム</a></p>
+<button onclick="location.href='/'">ホーム</button>
 
-<p>Posture: <span id="posture">---</span> /
-   Score: <span id="score">0</span>%</p>
+<p>Posture: <span id="posture">---</span></p>
 
 <pre id="json"></pre>
 

@@ -3,7 +3,6 @@
 // =========================
 const video       = document.getElementById("camera");
 const postureEl   = document.getElementById("posture");
-const scoreEl     = document.getElementById("score");
 const messageEl   = document.getElementById("message");
 const msgEl       = document.getElementById("msg");
 const startBtn    = document.getElementById("startBtn");
@@ -12,6 +11,13 @@ const privacyBtn  = document.getElementById("privacyBtn");
 const skeletonBtn = document.getElementById("skeletonBtn");
 const clearBtn    = document.getElementById("clearBtn");
 const cameraBox   = document.querySelector(".camera-box");
+const cameraIcon  = toggleBtn.querySelector("img");
+const cameraText  = toggleBtn.querySelector("span");
+const privacyIcon = privacyBtn.querySelector("img");
+const privacyText = privacyBtn.querySelector("span");
+const startIcon = startBtn.querySelector("img");
+const startText = startBtn.querySelector("span");
+
 
 // =========================
 // 状態
@@ -48,8 +54,8 @@ const log   = (...a) => DEBUG && console.log("[PG]", ...a);
 // =========================
 // 初期化
 // =========================
-startBtn.style.display = "none";
-updatePrivacyUI(true); // 初期＝プライバシーON
+startBtn.classList.add("hidden");   // display:none は使わない
+updatePrivacyUI(true);
 
 // =========================
 // ユーティリティ
@@ -99,13 +105,16 @@ function updatePrivacyUI(isOn) {
   privacyOn = isOn;
   if (isOn) {
     cameraBox.classList.add("privacy");
-    privacyBtn.textContent = "プライバシーモード ON";
-    clearOverlay(); // 表示も消す
+    privacyIcon.src = "/static/models/privacy-on.svg";
+    privacyText.textContent = "Privacy ON";
+    clearOverlay();
   } else {
     cameraBox.classList.remove("privacy");
-    privacyBtn.textContent = "プライバシーモード OFF";
+    privacyIcon.src = "/static/models/privacy-off.svg";
+    privacyText.textContent = "Privacy OFF";
   }
 }
+
 
 function restartStreamingLoop() {
   if (!streaming) return;
@@ -174,6 +183,7 @@ async function startCamera() {
 // =========================
 // カメラ ON / OFF
 // =========================
+
 toggleBtn.addEventListener("click", async () => {
   if (cameraOn) {
     // --- OFF ---
@@ -185,10 +195,12 @@ toggleBtn.addEventListener("click", async () => {
 
     postureEl.textContent = "OFF";
     messageEl.textContent = "カメラはオフです";
-    scoreEl.textContent = "-";
 
-    startBtn.style.display = "none";
-    toggleBtn.textContent = "カメラをオン";
+    streaming = false;
+
+    startBtn.classList.add("hidden");
+    cameraIcon.src = "/static/models/camera-on.svg";
+    cameraText.textContent = "Camera ON";
     cameraOn = false;
 
     // 計測ループも停止
@@ -201,8 +213,9 @@ toggleBtn.addEventListener("click", async () => {
     // --- ON ---
     try {
       await startCamera();
-      startBtn.style.display = "inline-block";
-      toggleBtn.textContent = "カメラをオフ";
+      startBtn.classList.remove("hidden");
+      cameraIcon.src = "/static/models/camera-off.svg";
+      cameraText.textContent = "Camera OFF";
       // 骨格ON かつ プライバシーOFF なら、計測が未開始でも案内
       if (skeletonOn && !streaming) {
         msgEl.textContent = "骨格表示には『計測開始』が必要です";
@@ -245,19 +258,32 @@ startBtn.onclick = async () => {
   if (!cameraOn) return;
 
   if (!streaming) {
+    // ===== 計測開始 =====
     streaming = true;
-    startBtn.textContent = "キャリブレーション";
-    // 骨格ONなら高速ポーリング
+
+    // startIcon.src = "/static/models/calibrate.svg";
+    startText.textContent = "キャリブレーション";
+
     POLL_INTERVAL_MS = skeletonOn ? POLL_FAST_MS : POLL_SLOW_MS;
     restartStreamingLoop();
-  } else {  
-    // --- キャリブレーション ---
+
+  } else {
+    // ===== キャリブレーション =====
     messageEl.textContent = "正しい姿勢を保存中…";
+
+    startIcon.src = "/static/models/loading.svg";
+    startText.textContent = "保存中…";
+
     const data = await sendFrame("/calibrate");
+
     messageEl.textContent =
       data.status === "calibrated"
         ? "キャリブレーション完了 ✅"
         : "キャリブレーション失敗 ❌";
+
+    // 戻す
+    // startIcon.src = "/static/models/calibrate.svg";
+    startText.textContent = "キャリブレーション";
   }
 };
 
@@ -297,30 +323,34 @@ async function sendFrame(url) {
 // UI更新（姿勢結果）
 // =========================
 function updateUI(data) {
+  // 初期化
+  postureEl.className = "posture";
+  messageEl.className = "message";
+
   if (!data || data.posture === "unknown") {
     postureEl.textContent = "UNKNOWN";
-    postureEl.className = "posture";
+    postureEl.classList.add("posture-unknown");
+
     messageEl.textContent = "姿勢を検出できません";
+    messageEl.classList.add("msg-muted");
     return;
   }
 
-  postureEl.textContent = data.posture.toUpperCase();
-  postureEl.className = "posture " + data.posture;
+  const posture = data.posture;
 
-  if (data.posture === "good") {
-    messageEl.textContent = "良い姿勢です 👍";
+  postureEl.textContent = posture.toUpperCase();
+  postureEl.classList.add(`posture-${posture}`);
+
+  if (posture === "good") {
+    messageEl.textContent = "良い姿勢です 👍 そのままキープ！";
+    messageEl.classList.add("msg-good");
   } else {
-    messageEl.textContent = "姿勢が崩れています ⚠️";
+    messageEl.textContent = "姿勢が崩れています ⚠️ 背筋を伸ばしましょう";
+    messageEl.classList.add("msg-bad");
     notifyPosture("姿勢が崩れています。気をつけてください！");
   }
-
-  if (data.metrics) {
-    scoreEl.textContent =
-      `Torso:${Math.floor(data.metrics.torso_angle)}  ` +
-      `Neck:${Math.floor(data.metrics.neck_angle)}  ` +
-      `Tilt:${Math.floor(data.metrics.shoulder_tilt)}`;
-  }
 }
+
 
 // =========================
 // サーバー返却のランドマークを描画
@@ -405,10 +435,11 @@ window.addEventListener("resize", () => {
 // 起動時の初期表示
 // =========================
 window.addEventListener("DOMContentLoaded", () => {
-  updatePrivacyUI(true); // 初期：ON
+  updatePrivacyUI(true);
   postureEl.textContent = "OFF";
   messageEl.textContent = "カメラはオフです";
-  scoreEl.textContent = "-";
+  cameraIcon.src = "/static/models/camera-on.svg";
+  cameraText.textContent = "Camera ON";
 });
 
 
