@@ -234,18 +234,6 @@ privacyBtn.addEventListener("click", async () => {
   }
 });
 
-// =========================
-// オーバーレイ消去
-// =========================
-clearBtn.addEventListener("click", () => {
-  clearOverlay();
-  msgEl.textContent = "オーバーレイを消去しました";
-  setTimeout(() => {
-    if (msgEl.textContent === "オーバーレイを消去しました") {
-      msgEl.textContent = "";
-    }
-    }, 3000);
-});
 
 // =========================
 // 計測 / キャリブレーション
@@ -259,7 +247,7 @@ startBtn.onclick = async () => {
     // 骨格ONなら高速ポーリング
     POLL_INTERVAL_MS = skeletonOn ? POLL_FAST_MS : POLL_SLOW_MS;
     restartStreamingLoop();
-  } else {
+  } else {  
     // --- キャリブレーション ---
     messageEl.textContent = "正しい姿勢を保存中…";
     const data = await sendFrame("/calibrate");
@@ -409,47 +397,6 @@ window.addEventListener("resize", () => {
   if (video.videoWidth) fitCanvasToVideo();
 });
 
-// =========================
-// 骨格ボタン（手動トグル）
-//  計測前でも「単発プレビュー」を実行（見えるかチェック）
-// =========================
-skeletonBtn.addEventListener("click", async () => {
-  if (!cameraOn) {
-    msgEl.textContent = "先にカメラをオンにしてください";
-    return;
-  }
-  skeletonOn = !skeletonOn;
-  skeletonBtn.textContent = skeletonOn ? "骨格表示モード ON" : "骨格表示モード OFF";
-  skeletonBtn.classList.toggle("muted", !skeletonOn);
-
-  // ポーリング周期切替（計測中のみ）
-  POLL_INTERVAL_MS = skeletonOn ? POLL_FAST_MS : POLL_SLOW_MS;
-  if (streaming) restartStreamingLoop();
-
-  if (!skeletonOn) {
-    clearOverlay();
-    return;
-  }
-
-  ensureOverlay();
-  fitCanvasToVideo();
-
-  if (!streaming && !privacyOn) {
-  const data = await sendFrame("/analyze");
-
-    console.log("[preview] keys:", Object.keys(data || {}));
-    console.log("[preview] landmarks type:", Array.isArray(data?.landmarks), "len:", data?.landmarks?.length);
-
-  updateUI(data);
-  if (data && Array.isArray(data.landmarks) && data.landmarks.length > 0) {
-    drawSkeletonFromServer(data.landmarks, data.connections, data.posture);
-    msgEl.textContent = "単発描画：骨格プレビューを表示しました（『計測開始』で連続表示）";
-  } else {
-    msgEl.textContent = "単発描画に失敗（landmarks なし/空）";
-    console.warn("no landmarks in preview", data);
-  }
-}
-});
 
 // =========================
 // 起動時の初期表示
