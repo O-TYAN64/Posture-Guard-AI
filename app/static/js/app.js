@@ -177,7 +177,6 @@ async function startCamera() {
 toggleBtn.addEventListener("click", async () => {
   if (cameraOn) {
     // --- OFF ---
-    stopSkeleton(); // 骨格先に停止
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       stream = null;
@@ -210,7 +209,11 @@ toggleBtn.addEventListener("click", async () => {
       }
     } catch (err) {
       console.error("カメラを開けませんでした:", err);
-      msgEl.textContent = "カメラを開けませんでした";
+      setTimeout(() => {
+          msgEl.textContent = "カメラを開けませんでした。設定や権限を確認してください。";
+          alert("カメラを開けませんでした。設定や権限を確認してください。");
+      }, 300);
+        
     }
   }
 });

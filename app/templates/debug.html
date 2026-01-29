@@ -25,7 +25,10 @@
 </div>
 
 <br>
+<button id="cal">計測開始</button>
 <button id="startBtn">START</button>
+<br>
+<p><a href="/">ホーム</a></p>
 
 <p>Posture: <span id="posture">---</span> /
    Score: <span id="score">0</span>%</p>
@@ -42,84 +45,121 @@ const postureEl = document.getElementById("posture");
 const scoreEl   = document.getElementById("score");
 const jsonEl    = document.getElementById("json");
 
-// サーバが connections を返さない場合のフォールバック
+const startBtn = document.getElementById("startBtn");
+const calBtn   = document.getElementById("cal");
+
+let streaming = false;
+let timerId = null;
+
+// ===== skeleton edges =====
 const DEFAULT_EDGES = [
   [11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],
   [23,25],[25,27],[24,26],[26,28],[27,29],[29,31],[28,30],[30,32],[0,11],[0,12]
 ];
 
-document.getElementById("startBtn").onclick = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+// ===== カメラ起動 =====
+startBtn.onclick = async () => {
+  if (streaming) return;
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: false
+  });
+
   video.srcObject = stream;
+
   video.onloadedmetadata = () => {
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
   };
-  setInterval(captureAndSend, 1000); // 1秒ごとにサーバ推定
+
+  streaming = true;
+  startBtn.textContent = "RUNNING";
+
+  timerId = setInterval(captureAndSend, 1000);
 };
 
-async function captureAndSend() {
-  if (!video.videoWidth) return;
+// ===== キャリブレーション =====
+calBtn.onclick = async () => {
+  if (!streaming) {
+    alert("先に START を押してください");
+    return;
+  }
 
-  // ← 送信用の一時キャンバスでフレームを取得
+  const data = await sendFrame("/calibrate");
+
+  postureEl.textContent =
+    data.status === "calibrated" ? "CALIBRATED" : "FAILED";
+};
+
+// ===== 共通：フレーム送信 =====
+async function sendFrame(url) {
+  if (!video.videoWidth) return {};
+
   const tmp = document.createElement("canvas");
   tmp.width  = video.videoWidth;
   tmp.height = video.videoHeight;
   tmp.getContext("2d").drawImage(video, 0, 0);
 
-  // ← 重要：multipart/form-data で送る（Base64 JSON はやめる）
-  const blob = await new Promise(res => tmp.toBlob(res, "image/jpeg", 0.8));
+  const blob = await new Promise(res =>
+    tmp.toBlob(res, "image/jpeg", 0.85)
+  );
+
   const form = new FormData();
   form.append("image", blob, "frame.jpg");
 
-  const res  = await fetch("/analyze", { method: "POST", body: form });
-  const data = await res.json();
+  const res = await fetch(url, {
+    method: "POST",
+    body: form
+  });
+
+  return await res.json();
+}
+
+// ===== 通常解析 =====
+async function captureAndSend() {
+  const data = await sendFrame("/analyze");
   updateUI(data);
 }
 
+// ===== UI更新 =====
 function updateUI(data) {
-  // 受信 JSON の可視化
-  jsonEl.textContent   = JSON.stringify(data, null, 2);
-  postureEl.textContent= data.posture ?? "---";
+  jsonEl.textContent = JSON.stringify(data, null, 2);
+  postureEl.textContent = data.posture ?? "---";
 
-  // （任意）簡易スコアの例：角度から減点
   if (data.metrics) {
     const t = Math.abs(data.metrics.torso_angle ?? 0);
     const n = Math.abs(data.metrics.neck_angle ?? 0);
     const s = Math.abs(data.metrics.shoulder_tilt ?? 0);
-    scoreEl.textContent = Math.max(0, Math.round(100 - (t*2 + n*3 + s*1.5)));
+    scoreEl.textContent =
+      Math.max(0, Math.round(100 - (t*2 + n*3 + s*1.5)));
   }
 
-  // 骨格描画
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (Array.isArray(data.landmarks) && data.landmarks.length > 0) {
-    const W = canvas.width, H = canvas.height;
-    const edges = (Array.isArray(data.connections) && data.connections.length > 0)
-      ? data.connections : DEFAULT_EDGES;
+  if (!Array.isArray(data.landmarks)) return;
 
-    const stroke = data.posture === "bad" ? "rgba(255,80,80,0.95)" : "rgba(0,200,255,0.9)";
-    const fill   = data.posture === "bad" ? "#FFA500" : "#00FF7F";
+  const W = canvas.width, H = canvas.height;
+  const edges = data.connections?.length ? data.connections : DEFAULT_EDGES;
 
-    // 接続線
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = stroke;
-    edges.forEach(([a,b]) => {
-      const pa = data.landmarks[a], pb = data.landmarks[b];
-      if (!pa || !pb) return;
-      ctx.beginPath();
-      ctx.moveTo(pa.x * W, pa.y * H);
-      ctx.lineTo(pb.x * W, pb.y * H);
-      ctx.stroke();
-    });
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(0,200,255,0.9)";
+  ctx.fillStyle   = "#00FF7F";
 
-    // ランドマーク点
-    ctx.fillStyle = fill;
-    for (const p of data.landmarks) {
-      ctx.beginPath();
-      ctx.arc(p.x * W, p.y * H, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  edges.forEach(([a,b]) => {
+    const pa = data.landmarks[a];
+    const pb = data.landmarks[b];
+    if (!pa || !pb) return;
+    ctx.beginPath();
+    ctx.moveTo(pa.x * W, pa.y * H);
+    ctx.lineTo(pb.x * W, pb.y * H);
+    ctx.stroke();
+  });
+
+  for (const p of data.landmarks) {
+    ctx.beginPath();
+    ctx.arc(p.x * W, p.y * H, 4, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 </script>
