@@ -9,27 +9,32 @@
 </head>
 <body>
 
-
 {% if current_user.is_authenticated %}
-<section class="login-box">
-  <p>ログイン中：{{ current_user.username }}</p>
-    {% if current_user.is_admin %}
-    <a href="/debug">デバック</a>
-    {% endif %}
-  <a href="{{ url_for('auth.logout') }}">ログアウト</a>
-</section>
-{% else %}
-{% endif %}
+  <div class="login-fixed">
+    <section class="login-box">
+      <p>ログイン中：{{ current_user.username }}</p>
 
+      {% if current_user.is_admin %}
+        <a href="/debug">デバック</a>
+      {% endif %}
+
+      <a href="{{ url_for('auth.logout') }}">ログアウト</a>
+    </section>
+  </div>
+{% endif %}
 
 <header>
   <h1 align="center">
+    
   <img src="{{ url_for('static', filename='models/favicon.ico') }}" width="72">
   <br>
   Posture Guard AI
   </h1>
   <p>AIがあなたの姿勢をリアルタイムでチェックします</p>
+
 </header>
+
+
 
 <main class="container">
 
@@ -42,13 +47,12 @@
   <!-- ===== 状態表示 ===== -->
   <section class="status-box">
     <div id="posture" class="posture">OFF</div>
-    <div id="score">-</div>
     <div class="mono" id="msg"></div>
     <p id="message">カメラはオフです</p>
     {% if current_user.is_authenticated %}
       <div class="button-group">
-        <button id="startBtn" class="">
-          <!-- <img src="/static/models/play.svg" alt=""> -->
+        <button id="startBtn">
+          <img src="/static/models/play.svg" alt="">
           <span>計測開始</span>
         </button>
       <div class="mini-button-row">

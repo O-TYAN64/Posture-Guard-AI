@@ -29,6 +29,9 @@ a:hover {
    ヘッダー
 ========================= */
 header {
+    width: 100%;
+    position: relative; 
+    background: transparent;
     text-align: center;
     padding: 32px 16px 24px;
 }
@@ -48,23 +51,27 @@ header p {
     color: #666;
 }
 
+
+
 /* =========================
    ログインボックス
 ========================= */
-.login-box {
+.login-fixed {
     position: fixed;
-    top: 16px;
-    left: 16px;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 10px 16px;
-    border-radius: 14px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    top: 24px;
+    left: 40%;
+    transform: translateX(600px); /* max-width / 2 */
     z-index: 1000;
-    font-size: 14px;
 }
 
-.login-box p {
-    margin-bottom: 4px;
+.login-box{
+    position: static;  /* ← 重要 */
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px 16px;
+    border-radius: 16px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    font-size: 15px;
+    backdrop-filter: blur(6px);
 }
 
 /* =========================
@@ -161,35 +168,47 @@ header p {
 
 
 /* 姿勢状態 */
+/* posture表示（大きく・強調） */
 .posture {
-    font-size: 36px;
-    font-weight: 800;
-    margin-bottom: 8px;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
 }
 
-.posture.good { color: #2ecc71; }
-.posture.bad  { color: #e74c3c; }
-
-/* スコア */
-#score {
-    font-size: 64px;
-    font-weight: 900;
-    margin-bottom: 8px;
+/* 状態別 */
+.posture-good {
+    color: #00c853; /* 緑 */
 }
 
-/* デバッグ / 内部メッセージ */
-#msg {
-    font-family: ui-monospace, monospace;
-    font-size: 14px;
-    color: #888;
+.posture-bad {
+    color: #ff5252; /* 赤 */
+}
+
+.posture-unknown {
+    color: #9e9e9e; /* グレー */
+}
+
+/* メッセージ */
+.message {
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.msg-good {
+    color: #00acc1;
     margin-bottom: 12px;
 }
 
-/* ユーザー向けメッセージ */
-#message {
-    font-size: 18px;
-    color: #555;
-    margin-bottom: 20px;
+.msg-bad {
+    color: #ff6f00;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.msg-muted {
+    color: #aaa;
+    margin-bottom: 12px;
 }
 
 /* =========================
@@ -385,4 +404,9 @@ header p {
     color: #ffffff;
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     border: 1px solid #000000;
+}
+
+.hidden {
+    visibility: hidden;   /* 見えない */
+    pointer-events: none; /* 押せない */
 }
