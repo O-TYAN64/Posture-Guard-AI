@@ -45,18 +45,30 @@
     <div id="score">-</div>
     <div class="mono" id="msg"></div>
     <p id="message">カメラはオフです</p>
-
     {% if current_user.is_authenticated %}
       <div class="button-group">
-        <button id="startBtn">計測開始</button>
-        <button id="privacyBtn">プライバシーモード OFF</button>
-        <button id="toggleCameraBtn">カメラをオン</button>
+        <button id="startBtn" class="">
+          <!-- <img src="/static/models/play.svg" alt=""> -->
+          <span>計測開始</span>
+        </button>
+      <div class="mini-button-row">
+        <button id="privacyBtn" class="icon-btn active">
+          <img src="/static/models/privacy-on.svg" alt="">
+          <span>Privacy ON</span>
+        </button>
+      
+        <button id="toggleCameraBtn" class="icon-btn">
+          <img src="/static/models/camera-on.svg" alt="">
+          <span>Camera ON</span>
+        </button>
       </div>
+      
     {% else %}
       <p>
-        <button onclick="location.href='/register'">新規登録</button>
-        <button onclick="location.href='/login'">ログイン</button>
+        <button id="login" onclick="location.href='/register'">新規登録</button>
+        <button id="register"   onclick="location.href='/login'">ログイン</button>
       </p>
+      </div>
     {% endif %}
   </section>
 
