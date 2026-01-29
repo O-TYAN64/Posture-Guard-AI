@@ -1,126 +1,125 @@
 /* ===== ベース ===== */
 body {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background: radial-gradient(circle at top, #1a1a1a, #0b0b0b);
-  color: #e6e6e6;
-  text-align: center;
-  margin: 0;
-  padding: 24px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: radial-gradient(circle at top, #1a1a1a, #0b0b0b);
+    color: #e6e6e6;
+    text-align: center;
+    margin: 0;
+    padding: 24px;
 }
 
 h1 {
-  letter-spacing: 0.12em;
-  font-size: 1.4rem;
-  margin-bottom: 16px;
-  color: #7dd3fc;
+    letter-spacing: 0.12em;
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+    color: #7dd3fc;
 }
 
 /* ===== カメラ周り ===== */
 .wrapper {
-  position: relative;
-  display: inline-block;
-  box-shadow: 0 0 0 1px #222,
-              0 10px 40px rgba(0,0,0,.8);
-  border-radius: 12px;
-  overflow: hidden;
+    position: relative;
+    display: inline-block;
+    box-shadow: 0 0 0 1px #222, 0 10px 40px rgba(0,0,0,.8);
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 video,
 canvas {
-  width: 640px;
-  height: 480px;
-  display: block;
+    width: 640px;
+    height: 480px;
+    display: block;
 }
 
 canvas {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
 }
 
 /* ===== ボタン ===== */
 button {
-  padding: 10px 18px;
-  margin: 8px 6px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  background: linear-gradient(#1f2933, #0f172a);
-  color: #e5e7eb;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all .15s ease;
+    padding: 10px 18px;
+    margin: 8px 6px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    background: linear-gradient(#1f2933, #0f172a);
+    color: #e5e7eb;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s ease;
 }
 
 button:hover {
-  background: linear-gradient(#2563eb, #1d4ed8);
-  border-color: #60a5fa;
-  transform: translateY(-1px);
+    background: linear-gradient(#2563eb, #1d4ed8);
+    border-color: #60a5fa;
+    transform: translateY(-1px);
 }
 
 button:active {
-  transform: translateY(0);
+    transform: translateY(0);
 }
 
 /* ===== 姿勢・スコア ===== */
 p {
-  margin-top: 14px;
-  font-size: 1rem;
-  letter-spacing: 0.05em;
+    margin-top: 14px;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
 }
 
 #posture {
-  font-weight: 900;
-  font-size: 1.2rem;
-  padding: 4px 10px;
-  border-radius: 6px;
+    font-weight: 900;
+    font-size: 1.2rem;
+    padding: 4px 10px;
+    border-radius: 6px;
 }
 
 #score {
-  font-weight: 900;
-  font-size: 1.4rem;
-  color: #22d3ee;
+    font-weight: 900;
+    font-size: 0rem;
+    color: #22d3ee;
 }
 
 /* 状態色（JSでクラス付けるとさらに良い） */
 .posture-good {
-  background: rgba(34,197,94,.15);
-  color: #22c55e;
+    background: rgba(34,197,94,.15);
+    color: #22c55e;
 }
 
 .posture-bad {
-  background: rgba(239,68,68,.15);
-  color: #ef4444;
+    background: rgba(239,68,68,.15);
+    color: #ef4444;
 }
 
 .posture-unknown {
-  background: rgba(148,163,184,.15);
-  color: #94a3b8;
+    background: rgba(148,163,184,.15);
+    color: #94a3b8;
 }
 
 /* ===== JSON表示 ===== */
 pre {
-  text-align: left;
-  background: #020617;
-  color: #22c55e;
-  padding: 14px;
-  max-width: 640px;
-  margin: 20px auto 0;
-  height: 260px;
-  overflow: auto;
-  border-radius: 10px;
-  border: 1px solid #1e293b;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  box-shadow: inset 0 0 20px rgba(0,0,0,.8);
+    text-align: left;
+    background: #020617;
+    color: #22c55e;
+    padding: 14px;
+    max-width: 640px;
+    margin: 20px auto 0;
+    height: 260px;
+    overflow: auto;
+    border-radius: 10px;
+    border: 1px solid #1e293b;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    box-shadow: inset 0 0 20px rgba(0,0,0,.8);
 }
 
 /* スクロールバー（Chrome系） */
 pre::-webkit-scrollbar {
-  width: 8px;
+    width: 8px;
 }
 pre::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+    background: #334155;
+    border-radius: 4px;
 }
