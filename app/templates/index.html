@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <link rel="shortcut icon" href="{{ url_for('static', filename='models/favicon.ico') }}">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
   <title>Posture Guard AI</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -11,6 +12,9 @@
 <section class="login-box">
 {% if current_user.is_authenticated %}
   <p>ログイン中：{{ current_user.username }}</p>
+    {% if current_user.is_admin %}
+    <a href="/debug">管理画面</a>
+    {% endif %}
   <a href="{{ url_for('auth.logout') }}">ログアウト</a>
 {% else %}
   <a href="/register">新規登録</a>
@@ -18,7 +22,11 @@
 </section>
 
 <header>
-  <h1>Posture Guard AI</h1>
+  <h1 align="center">
+  <img src="{{ url_for('static', filename='models/favicon.ico') }}" width="72">
+  <br>
+  Posture Guard AI
+  </h1>
   <p>AIがあなたの姿勢をリアルタイムでチェックします</p>
 </header>
 
@@ -34,6 +42,7 @@
   <section class="status-box">
     <div id="posture" class="posture">OFF</div>
     <div id="score">-</div>
+    <div class="mono" id="msg"></div>
     <p id="message">カメラはオフです</p>
 
     {% if current_user.is_authenticated %}

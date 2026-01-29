@@ -69,25 +69,39 @@ def show_problem(id):
 def debug():
     return render_template("debug.html")
 
-@app.route("/analyze", methods=["POST"])
+
+
+
+@app.post("/analyze")
 def analyze():
-    file = request.files.get("image")
-    if not file:
-        return jsonify({"error": "no image"}), 400
+    file = request.files.get("image", None)
+    if file is None:
+        return jsonify({"posture": "unknown"}), 400
 
-    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
-    metrics = analyzer.analyze(img)
+    file_bytes = np.frombuffer(file.read(), np.uint8)
+    frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if frame is None:
+        return jsonify({"posture": "unknown"}), 400
 
-    if metrics is None:
-        return jsonify({"posture": "unknown"})
+    out = analyzer.analyze(frame)
+    if out is None:
+        # 人なし（pose_world_landmarksなし）
+        return jsonify({"posture": "unknown", "landmarks": []})
 
-    posture = analyzer.judge(metrics)
+    posture = analyzer.judge(out["metrics"])
+
+    # 2Dランドマークがないフレームのケア（描画しないがUIは更新可能）
+    landmarks_2d = out["landmarks"] if out["landmarks"] is not None else []
 
     return jsonify({
-        "posture": posture,
-        "metrics": {k: round(v, 3) for k, v in metrics.items()},
-        "baseline": None if analyzer.baseline is None else analyzer.baseline.__dict__
+        "posture": posture,                    # "good" / "bad"
+        "metrics": out["metrics"],
+        "landmarks": landmarks_2d,             # ← None の代わりに []
+        "world_landmarks": out["world_landmarks"],
+        "connections": out["connections"]
     })
+
+
 
 
 @app.route("/calibrate", methods=["POST"])
@@ -97,18 +111,19 @@ def calibrate():
         return jsonify({"error": "no image"}), 400
 
     img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
-    metrics = analyzer.analyze(img)
-
-    if metrics is None:
+    out = analyzer.analyze(img)
+    
+    if out is None:
         return jsonify({"error": "no pose detected"}), 400
-
-    analyzer.calibrate(metrics)
-
+    
+    analyzer.calibrate(out["metrics"])  # ← metrics だけ渡す
+    
     return jsonify({
         "status": "calibrated",
-        "baseline": {k: round(v, 3) for k, v in metrics.items()}
+        "baseline": {k: round(v, 3) for k, v in out["metrics"].items()}
     })
 
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True, threaded=True)
