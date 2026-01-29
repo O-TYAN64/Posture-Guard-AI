@@ -13,7 +13,7 @@
 {% if current_user.is_authenticated %}
   <p>ログイン中：{{ current_user.username }}</p>
     {% if current_user.is_admin %}
-    <a href="/debug">管理画面</a>
+    <a href="/debug">デバック</a>
     {% endif %}
   <a href="{{ url_for('auth.logout') }}">ログアウト</a>
 {% else %}
