@@ -9,17 +9,18 @@
 </head>
 <body>
 
-<section class="login-box">
+
 {% if current_user.is_authenticated %}
+<section class="login-box">
   <p>ログイン中：{{ current_user.username }}</p>
     {% if current_user.is_admin %}
     <a href="/debug">デバック</a>
     {% endif %}
   <a href="{{ url_for('auth.logout') }}">ログアウト</a>
-{% else %}
-  <a href="/register">新規登録</a>
-{% endif %}
 </section>
+{% else %}
+{% endif %}
+
 
 <header>
   <h1 align="center">
@@ -53,9 +54,8 @@
       </div>
     {% else %}
       <p>
-        計測を開始するには
-        <a href="/login">ログイン</a>
-        してください。
+        <button onclick="location.href='/register'">新規登録</button>
+        <button onclick="location.href='/login'">ログイン</button>
       </p>
     {% endif %}
   </section>
