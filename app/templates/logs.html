@@ -2,325 +2,681 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="shortcut icon" href="{{ url_for('static', filename='models/favicon.ico') }}">
   <title>Posture Logs</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Chart.js v4 + time adapter -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
 
   <style>
-    body {
+    html, body { height: 100%; }
+    body{
       background:#121212;
       color:#eee;
-      font-family: 'Courier New', monospace;
-      margin:0; padding:0;
-      font-size: 0.85em;
+      font-family:'Courier New', monospace;
+      margin:0;
+      font-size:0.90em;
     }
 
-    h1 {
+    .page{ min-height:100vh; display:flex; flex-direction:column; }
+    h1{
       text-align:center;
-      margin:30px 0 15px;
-      font-size:1.65em;
+      margin:10px 0 6px;
+      font-size:1.35em;
       text-shadow:1px 1px 3px rgba(0,0,0,0.7);
     }
 
-    /* グラフ */
+    /* ===== メインチャート ===== */
     .chart-container{
-      max-width:675px;
-      margin: 15px auto 10px;
-      padding: 0 8px;
-      height: 315px;
+      width: min(1100px, 96vw);
+      margin: 0 auto;
+      height: clamp(240px, 34vh, 380px);
+      padding: 0 6px;
     }
-
     #postureChart{
       width:100% !important;
       height:100% !important;
       display:block;
       background: rgba(255,255,255,0.02);
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.35);
     }
 
-    /* ======== テーブル可視化改善 here ======== */
-
-    .table-container {
-      max-width:675px;
-      margin:8px auto 15px;
-      overflow:auto;
-      max-height: 40vh;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-      border-radius:6px;
+    /* ===== Navigator（画像風） ===== */
+    .navigator{
+      width: min(1100px, 96vw);
+      margin: 8px auto 0;
+      padding: 10px 12px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+      box-shadow: 0 0 12px rgba(0,0,0,0.25);
+    }
+    .nav-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom: 8px;
+    }
+    .legend-hint{ color:#9aa0a6; font-size:0.90em; }
+    .range-label{
+      color:#eaeaea;
+      font-size:0.92em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
     }
 
-    table {
-      border-collapse: collapse;
+    /* nav帯（薄水色） */
+    .nav-area{
+      position: relative;
+      background: rgba(140, 210, 255, 0.18);
+      border-radius: 10px;
+      overflow:hidden;
+      padding: 10px;
+    }
+    #navChart{
+      width:100% !important;
+      height:70px !important;
+      display:block;
+      opacity: 0.9;
+    }
+
+    /* ★ navChartの上にレンジUIを重ねる（画像っぽい） */
+    .range-ui.overlay{
+      position:absolute;
+      inset: 10px; /* nav-area paddingと同じ */
+      border-radius: 10px;
+      user-select:none;
+      -webkit-user-select:none;
+      touch-action: pan-x;
+    }
+
+    /* ✅ 範囲外ディム：白ではなく暗くする（重要） */
+    .range-ui.overlay .dim{
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,0.42); /* ★外側を暗く */
+      pointer-events:none;
+      z-index:1;
+    }
+    .range-ui.overlay .dim.left{ left:0; right:auto; width:0; }
+    .range-ui.overlay .dim.right{ right:0; left:auto; width:0; }
+
+    /* ✅ 選択領域：うっすら明るい（枠なし） */
+    .range-ui.overlay .selection{
+      position:absolute;
+      top:0; bottom:0;
+      left:0%;
       width:100%;
-      font-variant-numeric: tabular-nums;
+      background: rgba(255,255,255,0.07);
+      border:none;
+      border-radius: 10px;
+      z-index:2;
+      cursor: grab;
+    }
+    .range-ui.overlay .selection.dragging{
+      cursor: grabbing;
+      background: rgba(255,255,255,0.10);
     }
 
-    th, td {
+    /* ✅ 丸いグレーのハンドル（||）を小さめに */
+    .range-ui.overlay .knob{
+      position:absolute;
+      top:50%;
+      width: 28px;   /* 36 → 28 */
+      height: 28px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background: rgba(220,220,220,0.92);
+      border: 1px solid rgba(0,0,0,0.18);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+      z-index:3;
+      cursor: ew-resize;
+    }
+    .range-ui.overlay .knob::before{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:50%;
+      width: 10px;
+      height: 14px;
+      transform: translate(-50%, -50%);
+      background:
+        linear-gradient(#6f6f6f,#6f6f6f) left 0 top 0/3px 100% no-repeat,
+        linear-gradient(#6f6f6f,#6f6f6f) right 0 top 0/3px 100% no-repeat;
+      opacity: 0.95;
+    }
+    .range-ui.overlay .knob.left{ left:0%; }
+    .range-ui.overlay .knob.right{ left:100%; }
+
+    /* range inputは値管理だけ（見えない） */
+    .range-ui.overlay input[type=range]{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      opacity:0;
+      pointer-events:none;
+      -webkit-appearance:none;
+      appearance:none;
+    }
+
+    .nav-hint{
+      color:#888;
+      font-size:0.88em;
+      margin-top:6px;
+    }
+
+    /* ===== テーブル ===== */
+    .table-container{
+      width: min(1100px, 96vw);
+      margin: 10px auto 8px;
+      flex: 0 0 auto;
+      max-height: clamp(180px, 38vh, 420px);
+      overflow:auto;
+      border-radius:10px;
+      box-shadow:0 0 12px rgba(0,0,0,0.35);
+      background:#141414;
+    }
+    table{ border-collapse: collapse; width:100%; font-variant-numeric: tabular-nums; }
+    th, td{
       padding:8px 10px;
       text-align:center;
-      font-size:0.90em;
+      font-size:0.95em;
       border-bottom:1px solid rgba(255,255,255,0.08);
       white-space: nowrap;
     }
-
-    th {
+    th{
       background-color:#1f1f1f;
       color:#fff;
       position: sticky;
       top:0;
       z-index:3;
     }
-
-    /* 奇数行 / 偶数行 */
     tr:nth-child(even){ background-color:#171717; }
     tr:nth-child(odd){ background-color:#1e1e1e; }
+    tr.good{ background: linear-gradient(90deg, rgba(76,175,80,0.15), rgba(76,175,80,0.05)); }
+    tr.bad { background: linear-gradient(90deg, rgba(244,67,54,0.15), rgba(244,67,54,0.05)); }
+    tr:hover{ background-color:rgba(79,195,247,0.10) !important; }
 
-    /* 行に判定ごとの背景色を付けて見やすく */
-    tr.good { background: linear-gradient(90deg, rgba(76,175,80,0.15), rgba(76,175,80,0.05)); }
-    tr.bad  { background: linear-gradient(90deg, rgba(244,67,54,0.15), rgba(244,67,54,0.05)); }
-
-    tr:hover { background-color:rgba(79,195,247,0.10) !important; }
-
-    /* 時刻列を固定 */
-    td.col-time, th.col-time {
+    td.col-time, th.col-time{
       position: sticky;
       left: 0;
       z-index: 4;
       background:#181818;
-      box-shadow: 4px 0 6px rgba(0,0,0,0.4);
+      box-shadow: 4px 0 8px rgba(0,0,0,0.45);
     }
 
-    /* 判定を pill スタイルに */
-    .pill {
+    .pill{
       padding:4px 10px;
       border-radius:999px;
       font-weight:700;
       border:1px solid rgba(255,255,255,0.2);
     }
-    .good .pill { background:rgba(76,175,80,0.25); color:#bdf8c0; border-color:rgba(76,175,80,0.4); }
-    .bad  .pill { background:rgba(244,67,54,0.25); color:#ffc0c0; border-color:rgba(244,67,54,0.4); }
+    .good .pill{ background:rgba(76,175,80,0.25); color:#bdf8c0; border-color:rgba(76,175,80,0.4); }
+    .bad  .pill{ background:rgba(244,67,54,0.25); color:#ffc0c0; border-color:rgba(244,67,54,0.4); }
 
-    /* ヒートマップ + 閾値超え強調 */
-    td.metric { transition:0.2s; }
-    td.metric.alert {
+    td.metric{ transition:0.2s; }
+    td.metric.alert{
       outline:2px solid rgba(255,80,80,0.7);
       border-radius:6px;
       box-shadow:0 0 0 3px rgba(255,80,80,0.25);
     }
-
-    /* ======== end table improve ======== */
-
-    .footer {
-      text-align:center;
-      margin:20px 0;
-      font-size:0.9em;
-      color:#aaa;
+    td.metric.alert::after{
+      content:" ⚠";
+      color:#ff7070;
+      font-weight:800;
     }
 
-    .pagination { text-align:center; margin: 15px 0; }
-    .pagination a { margin: 0 4px; color:#4FC3F7; text-decoration:none; }
-    .pagination a.current { font-weight:bold; text-decoration:underline; }
+    .pagination{ text-align:center; margin: 6px 0 10px; }
+    .pagination a{ margin: 0 6px; color:#4FC3F7; text-decoration:none; }
+    .pagination a.current{ font-weight:bold; text-decoration:underline; }
+    .footer{ text-align:center; margin: 0 0 10px; font-size:0.9em; color:#aaa; }
+
+    a{ text-decoration:none; color:#4FC3F7; font-weight:bold; }
+    a:hover{ color:#29B6F6; }
   </style>
 </head>
 
 <body>
+<div class="page">
 
-<h1>姿勢ログ</h1>
+  <h1>姿勢ログ</h1>
 
-<div class="chart-container">
-  <canvas id="postureChart"></canvas>
-</div>
+  <div class="chart-container">
+    <canvas id="postureChart"></canvas>
+  </div>
 
-<div class="table-container">
-  <table>
-    <tr>
-      <th class="col-time">時刻</th>
-      <th>判定</th>
-      <th>体幹</th>
-      <th>首</th>
-      <th>肩</th>
-    </tr>
+  <div class="navigator">
+    <div class="nav-top">
+      <div class="legend-hint">※左右ハンドルで伸縮 / 範囲ドラッグで移動 / 枠外クリックでジャンプ</div>
+      <div id="rangeLabel" class="range-label">期間: -</div>
+    </div>
 
-    {% for log in logs %}
-    <tr class="{{ log.judge }}" 
-        data-torso="{{ log.torso_angle }}"
-        data-neck="{{ log.neck_angle }}"
-        data-shoulder="{{ log.shoulder_tilt }}">
+    <div class="nav-area">
+      <canvas id="navChart"></canvas>
 
-      <td class="col-time">{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+      <div class="range-ui overlay" id="rangeUI">
+        <div class="dim left" id="dimL"></div>
+        <div class="dim right" id="dimR"></div>
 
-      <td class="{{ log.judge }}">
-        <span class="pill">{{ log.posture }}</span>
-      </td>
+        <div class="selection" id="win">
+          <div class="knob left" id="knobL" aria-label="start"></div>
+          <div class="knob right" id="knobR" aria-label="end"></div>
+        </div>
 
-      <td class="metric">{{ "%.2f"|format(log.torso_angle) }}</td>
-      <td class="metric">{{ "%.2f"|format(log.neck_angle) }}</td>
-      <td class="metric">{{ "%.2f"|format(log.shoulder_tilt) }}</td>
+        <input id="rangeMin" type="range" min="0" max="100" value="0" step="1">
+        <input id="rangeMax" type="range" min="0" max="100" value="100" step="1">
+      </div>
 
-    </tr>
-    {% endfor %}
-  </table>
-</div>
+      <div class="nav-hint">　ハンドル(||)をドラッグで範囲変更できます</div>
+    </div>
+  </div>
 
-<!-- pagination -->
-<div class="pagination">
-  {% if page > 1 %}
-    <a href="{{ url_for('show_logs', page=page-1) }}">← 前へ</a>
-  {% endif %}
-  <span class="current">ページ {{ page }}</span>
-  {% if has_next %}
-    <a href="{{ url_for('show_logs', page=page+1) }}">次へ →</a>
-  {% endif %}
-</div>
+  <div class="table-container">
+    <table>
+      <tr>
+        <th class="col-time">時刻</th>
+        <th>判定</th>
+        <th>体幹</th>
+        <th>首</th>
+        <th>肩</th>
+      </tr>
 
-<div class="footer">
-  <a href="/">← 戻る</a>
+      {% for log in logs %}
+      <tr class="{{ log.judge }}"
+          data-torso="{{ log.torso_angle }}"
+          data-neck="{{ log.neck_angle }}"
+          data-shoulder="{{ log.shoulder_tilt }}">
+        <td class="col-time">{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+        <td class="{{ log.judge }}"><span class="pill">{{ log.posture }}</span></td>
+        <td class="metric">{{ "%.2f"|format(log.torso_angle) }}</td>
+        <td class="metric">{{ "%.2f"|format(log.neck_angle) }}</td>
+        <td class="metric">{{ "%.2f"|format(log.shoulder_tilt) }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if page > 1 %}
+      <a href="{{ url_for('show_logs', page=page-1) }}">← 前へ</a>
+    {% endif %}
+    <span class="current">ページ {{ page }}</span>
+    {% if has_next %}
+      <a href="{{ url_for('show_logs', page=page+1) }}">次へ →</a>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    <a href="/">← 戻る</a>
+  </div>
+
 </div>
 
 <script>
-  /* ======== Chart.js（あなたのまま） ======== */
+/* ============================
+   1) データ（ms化して安定）
+============================ */
+const rawPoints = [
+  {% for log in logs %}
+  {
+    iso: "{{ log.created_at.strftime('%Y-%m-%dT%H:%M:%S') }}",
+    torso: {{ log.torso_angle if log.torso_angle is not none else 'null' }},
+    neck: {{ log.neck_angle if log.neck_angle is not none else 'null' }},
+    shoulder: {{ log.shoulder_tilt if log.shoulder_tilt is not none else 'null' }}
+  },
+  {% endfor %}
+];
 
-  const labels = [{% for log in logs %}"{{ log.created_at.strftime('%H:%M:%S') }}",{% endfor %}];
+const points = rawPoints
+  .map(p => ({ ...p, t: luxon.DateTime.fromISO(p.iso).toMillis() }))
+  .sort((a,b) => a.t - b.t);
 
-  function filterData(arr, labels){
-      const filteredData = [];
-      const filteredLabels = [];
-      let lastTime = null;
-      for(let i=0;i<arr.length;i++){
-          const t = new Date("1970-01-01T" + labels[i]);
-          if(!lastTime || (t-lastTime)/1000 >= 2){
-              filteredData.push(arr[i]);
-              filteredLabels.push(labels[i]);
-              lastTime = t;
+const xs = points.map(p => p.t);
+const N = xs.length;
+
+const torsoSeries = points.filter(p => p.torso !== null).map(p => ({ x: p.t, y: p.torso }));
+const neckSeries  = points.filter(p => p.neck !== null).map(p => ({ x: p.t, y: p.neck }));
+const shSeries    = points.filter(p => p.shoulder !== null).map(p => ({ x: p.t, y: p.shoulder }));
+
+const xMinAll = N ? xs[0] : undefined;
+const xMaxAll = N ? xs[N-1] : undefined;
+
+/* ============================
+   2) メインチャート
+============================ */
+const mainChart = new Chart(document.getElementById('postureChart'), {
+  type:'line',
+  data:{
+    datasets:[
+      { label:'体幹角度', data:torsoSeries, parsing:false, borderColor:'#4CAF50',
+        backgroundColor:'rgba(76,175,80,0.18)', tension:0.25, pointRadius:0, borderWidth:2, spanGaps:true },
+      { label:'首角度', data:neckSeries, parsing:false, borderColor:'#FFEB3B',
+        backgroundColor:'rgba(255,235,59,0.14)', tension:0.25, pointRadius:0, borderWidth:2, spanGaps:true },
+      { label:'肩傾き', data:shSeries, parsing:false, borderColor:'#F44336',
+        backgroundColor:'rgba(244,67,54,0.14)', tension:0.25, pointRadius:0, borderWidth:2, spanGaps:true },
+    ]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    normalized:true,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{
+      legend:{ labels:{ color:'#eee', boxWidth:14, boxHeight:10 } },
+      tooltip:{
+        mode:'index', intersect:false,
+        backgroundColor:'rgba(20,20,20,0.92)',
+        borderColor:'rgba(255,255,255,0.12)',
+        borderWidth:1,
+        titleColor:'#fff', bodyColor:'#eee',
+        padding:12,
+        callbacks:{
+          title(items){
+            const ms = items[0].parsed.x;
+            return luxon.DateTime.fromMillis(ms).toFormat("yyyy-LL-dd HH:mm:ss");
           }
-      }
-      return {data:filteredData, labels:filteredLabels};
-  }
-
-  const torsoData = [{% for log in logs %}{{ log.torso_angle }},{% endfor %}];
-  const neckData = [{% for log in logs %}{{ log.neck_angle }},{% endfor %}];
-  const shoulderData = [{% for log in logs %}{{ log.shoulder_tilt }},{% endfor %}];
-
-  const filteredTorso = filterData(torsoData, labels);
-  const filteredNeck = filterData(neckData, labels);
-  const filteredShoulder = filterData(shoulderData, labels);
-
-  const data = {
-      labels: filteredTorso.labels,
-      datasets:[
-          {
-              label:'体幹角度',
-              data:filteredTorso.data,
-              borderColor:'#4CAF50',
-              backgroundColor:'rgba(76,175,80,0.3)',
-              tension:0.3,
-              pointRadius:3,
-              borderWidth:2
-          },
-          {
-              label:'首角度',
-              data:filteredNeck.data,
-              borderColor:'#FFEB3B',
-              backgroundColor:'rgba(255,235,59,0.3)',
-              tension:0.3,
-              pointRadius:3,
-              borderWidth:2
-          },
-          {
-              label:'肩傾き',
-              data:filteredShoulder.data,
-              borderColor:'#F44336',
-              backgroundColor:'rgba(244,67,54,0.3)',
-              tension:0.3,
-              pointRadius:3,
-              borderWidth:2
-          }
-      ]
-  };
-
-  new Chart(document.getElementById('postureChart'), {
-    type:'line',
-    data:data,
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{
-        legend:{ labels:{ color:'#eee', boxWidth:15, boxHeight:10 } },
-        tooltip:{ mode:'index', intersect:false }
+        }
       },
-      interaction:{ mode:'nearest', axis:'x', intersect:false },
-      scales:{
-        x:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } },
-        y:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } }
+      decimation:{ enabled:true, algorithm:'lttb', samples:180 }
+    },
+    scales:{
+      x:{
+        type:'time',
+        min:xMinAll,
+        max:xMaxAll,
+        grid:{ color:'rgba(255,255,255,0.08)' },
+        ticks:{ color:'#eee', maxRotation:0, autoSkip:true }
+      },
+      y:{
+        grid:{ color:'rgba(255,255,255,0.08)' },
+        ticks:{ color:'#eee' }
       }
     }
+  }
+});
+
+/* ============================
+   3) ナビゲータ（ミニチャート）
+============================ */
+new Chart(document.getElementById('navChart'), {
+  type:'line',
+  data:{
+    datasets:[
+      {
+        label:'overview',
+        data: torsoSeries,
+        parsing:false,
+        borderColor:'rgba(120, 200, 255, 1)',
+        backgroundColor:'rgba(120, 200, 255, 0.22)',
+        tension:0.25,
+        pointRadius:0,
+        borderWidth:2,
+        fill:true
+      }
+    ]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{ legend:{ display:false }, tooltip:{ enabled:false } },
+    scales:{ x:{ type:'time', display:false }, y:{ display:false } }
+  }
+});
+
+/* ============================
+   4) Navigator UI（伸縮 + 移動 + ジャンプ）
+============================ */
+const rMin = document.getElementById("rangeMin");
+const rMax = document.getElementById("rangeMax");
+const rangeLabel = document.getElementById("rangeLabel");
+const dimL = document.getElementById("dimL");
+const dimR = document.getElementById("dimR");
+const win  = document.getElementById("win");
+const rangeUI = document.getElementById("rangeUI");
+const knobL = document.getElementById("knobL");
+const knobR = document.getElementById("knobR");
+
+if (N <= 1) {
+  rangeLabel.textContent = "期間: データが少ないため選択不可";
+} else {
+  rMin.min = 0; rMin.max = N - 1; rMin.value = 0;
+  rMax.min = 0; rMax.max = N - 1; rMax.value = N - 1;
+
+  const denom = Math.max(1, (N - 1));
+
+  function clampAB(a,b){
+    if (a >= b) a = b - 1;
+    if (b <= a) b = a + 1;
+    a = Math.max(0, Math.min(N - 2, a));
+    b = Math.max(1, Math.min(N - 1, b));
+    return [a,b];
+  }
+
+  function updateNavigatorUI(a,b){
+    const denom = Math.max(1, (N - 1));
+    const leftPct  = (a / denom) * 100;
+    const rightPct = (b / denom) * 100;
+
+    // ✅ 選択範囲とディムは「本来の位置」で描く（ズレ防止）
+    win.style.left = leftPct + "%";
+    win.style.width = Math.max(0, rightPct - leftPct) + "%";
+
+    dimL.style.width = leftPct + "%";
+    dimR.style.width = (100 - rightPct) + "%";
+
+    // ✅ ハンドルだけ端で切れないようにクランプ（任意だが推奨）
+    const rect = rangeUI.getBoundingClientRect();
+    const knobRadiusPx = 14; // knob 28px の半分（CSSと合わせる）
+    const knobRadiusPct = (knobRadiusPx / rect.width) * 100;
+
+    const safeLeft = Math.max(knobRadiusPct, Math.min(100 - knobRadiusPct, leftPct));
+    const safeRight = Math.max(knobRadiusPct, Math.min(100 - knobRadiusPct, rightPct));
+
+    knobL.style.left = safeLeft + "%";
+    knobR.style.left = safeRight + "%";
+  }
+
+
+  function updateMainRange(a,b){
+    const minMs = xs[a];
+    const maxMs = xs[b];
+    mainChart.options.scales.x.min = minMs;
+    mainChart.options.scales.x.max = maxMs;
+    mainChart.update('none');
+
+    const s = luxon.DateTime.fromMillis(minMs).toFormat("yyyy-LL-dd HH:mm:ss");
+    const e = luxon.DateTime.fromMillis(maxMs).toFormat("yyyy-LL-dd HH:mm:ss");
+    rangeLabel.textContent = `期間: ${s} 〜 ${e}`;
+  }
+
+  function applyRange(a,b){
+    [a,b] = clampAB(a,b);
+    rMin.value = a;
+    rMax.value = b;
+    updateNavigatorUI(a,b);
+    updateMainRange(a,b);
+  }
+
+  applyRange(0, N - 1);
+
+  // Drag基盤
+  let mode = null; // 'left' | 'right' | 'move'
+  let startX = 0;
+  let startA = 0;
+  let startB = 0;
+  let pxPerIndex = 1;
+
+  function recalcScale(){
+    const rect = rangeUI.getBoundingClientRect();
+    pxPerIndex = rect.width / denom;
+    return rect;
+  }
+
+  function beginDrag(newMode, e){
+    mode = newMode;
+    startX = e.clientX;
+    startA = parseInt(rMin.value, 10);
+    startB = parseInt(rMax.value, 10);
+    win.classList.add("dragging");
+    win.setPointerCapture(e.pointerId);
+    recalcScale();
+    e.preventDefault();
+  }
+
+  function drag(e){
+    if (!mode) return;
+    
+    const dx = e.clientX - startX;
+    const delta = Math.round(dx / pxPerIndex);
+
+    let a = startA;
+    let b = startB;
+
+    if (mode === "left") a = startA + delta;
+    else if (mode === "right") b = startB + delta;
+    else if (mode === "move") {
+      const w = startB - startA;
+      a = startA + delta;
+      b = a + w;
+    }
+
+    [a,b] = clampAB(a,b);
+
+    if (mode === "move") {
+      const w = startB - startA;
+      if (a < 0) { a = 0; b = w; }
+      if (b > N - 1) { b = N - 1; a = b - w; }
+    }
+
+    applyRange(a,b);
+  }
+
+  function endDrag(e){
+    if (!mode) return;
+    mode = null;
+    win.classList.remove("dragging");
+    try { win.releasePointerCapture(e.pointerId); } catch {}
+  }
+
+  // 伸縮：左右ハンドル
+  knobL.addEventListener("pointerdown", (e)=>beginDrag("left", e));
+  knobR.addEventListener("pointerdown", (e)=>beginDrag("right", e));
+
+  // 移動：選択領域
+  win.addEventListener("pointerdown", (e)=>{
+    if (e.target === knobL || e.target === knobR) return;
+    beginDrag("move", e);
   });
 
- /* ======== テーブルヒートマップ：方向性を保った閾値強調（修正版） ======== */
-  
-  const rows = document.querySelectorAll("tr[data-torso]");
-  
-  /**
-   * ✅ 初期調整値（このデータ傾向に合わせた版）
-   * - neck: goodがより負側に寄る → -49.5より大きい（負が浅い）と bad 寄り
-   * - shoulder: 0以上（正側）を bad 寄り
-   * - torso: 分離が弱いので強いalertは付けず、色で見せる
-   */
-  const TH = {
-    neck_bad: -49.5,     // neck > -49.5 を赤枠強調（bad寄り）
-    shoulder_bad: 0.0    // shoulder >= 0 を赤枠強調（bad寄り）
+  win.addEventListener("pointermove", drag);
+  win.addEventListener("pointerup", endDrag);
+  win.addEventListener("pointercancel", endDrag);
+
+  // ジャンプ：枠外クリック
+  rangeUI.addEventListener("pointerdown", (e)=>{
+    if (e.target === knobL || e.target === knobR || win.contains(e.target)) return;
+
+    const rect = recalcScale();
+    const x = e.clientX - rect.left;
+    const idx = Math.round((x / rect.width) * denom);
+
+    const a = parseInt(rMin.value, 10);
+    const b = parseInt(rMax.value, 10);
+    const w = b - a;
+
+    let newA = idx - Math.floor(w / 2);
+    let newB = newA + w;
+
+    if (newA < 0) { newA = 0; newB = w; }
+    if (newB > N - 1) { newB = N - 1; newA = newB - w; }
+
+    applyRange(newA, newB);
+  });
+
+  // 画面サイズ変更でクランプ再計算
+  window.addEventListener("resize", () => {
+    applyRange(parseInt(rMin.value, 10), parseInt(rMax.value, 10));
+  });
+}
+
+/* ============================
+   5) テーブルヒートマップ（自動レンジ + 両側外れ値 alert）
+============================ */
+const tableRows = document.querySelectorAll("tr[data-torso]");
+
+function toNums(key){
+  return [...tableRows].map(r => parseFloat(r.dataset[key])).filter(Number.isFinite);
+}
+function quantile(arr, p){
+  const a = [...arr].sort((x,y)=>x-y);
+  if (!a.length) return NaN;
+  const idx = (a.length - 1) * p;
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  if (lo === hi) return a[lo];
+  return a[lo] + (a[hi] - a[lo]) * (idx - lo);
+}
+function heatColorByRange(v, min, max, rgb){
+  const t = Math.max(0, Math.min(1, (v - min) / ((max - min) || 1)));
+  const a = 0.06 + t * 0.34;
+  return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+}
+function outOfRange(v, lo, hi){
+  return Number.isFinite(v) && (v < lo || v > hi);
+}
+
+if (tableRows.length){
+  const torsoVals = toNums("torso");
+  const neckVals  = toNums("neck");
+  const shVals    = toNums("shoulder");
+
+  const R = {
+    torso:   [quantile(torsoVals, 0.05), quantile(torsoVals, 0.95)],
+    neck:    [quantile(neckVals, 0.05),  quantile(neckVals, 0.95)],
+    shoulder:[quantile(shVals, 0.05),    quantile(shVals, 0.95)]
   };
-  
-  // 値→ヒート色（min〜maxで濃淡、方向性を保つ）
-  function heatColorByRange(v, min, max, rgb){
-    // v を min〜max に正規化して 0..1
-    const t = Math.max(0, Math.min(1, (v - min) / ((max - min) || 1)));
-    const a = 0.06 + t * 0.34;  // 透明度：薄→濃
-    return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
-  }
-  
-  // 行から列値を集めてレンジを作る（このページ分）
-  const torsoVals = [...rows].map(r => parseFloat(r.dataset.torso)).filter(Number.isFinite);
-  const neckVals  = [...rows].map(r => parseFloat(r.dataset.neck)).filter(Number.isFinite);
-  const shVals    = [...rows].map(r => parseFloat(r.dataset.shoulder)).filter(Number.isFinite);
-  
-  const torsoMin = Math.min(...torsoVals), torsoMax = Math.max(...torsoVals);
-  const neckMin  = Math.min(...neckVals),  neckMax  = Math.max(...neckVals);
-  const shMin    = Math.min(...shVals),    shMax    = Math.max(...shVals);
-  
-  // 列ごとの色
-  const C_TORSO = [76,175,80];    // 緑
-  const C_NECK  = [255,235,59];   // 黄
-  const C_SH    = [244,67,54];    // 赤
-  
-  rows.forEach(row => {
+
+  const M = {
+    torso:   [Math.min(...torsoVals), Math.max(...torsoVals)],
+    neck:    [Math.min(...neckVals),  Math.max(...neckVals)],
+    shoulder:[Math.min(...shVals),    Math.max(...shVals)]
+  };
+
+  const C_TORSO = [76,175,80];
+  const C_NECK  = [255,235,59];
+  const C_SH    = [244,67,54];
+
+  tableRows.forEach(row => {
     const torso = parseFloat(row.dataset.torso);
     const neck  = parseFloat(row.dataset.neck);
     const sh    = parseFloat(row.dataset.shoulder);
-  
     const cells = row.querySelectorAll("td.metric");
     if (cells.length < 3) return;
-  
-    // 体幹：色だけ（alertは基本付けない）
+
     if (Number.isFinite(torso)) {
-      cells[0].style.background = heatColorByRange(torso, torsoMin, torsoMax, C_TORSO);
+      cells[0].style.background = heatColorByRange(torso, M.torso[0], M.torso[1], C_TORSO);
+      if (outOfRange(torso, R.torso[0], R.torso[1])) cells[0].classList.add("alert");
     }
-  
-    // 首：色 + bad寄り強調（負が浅い方が悪い寄り）
     if (Number.isFinite(neck)) {
-      cells[1].style.background = heatColorByRange(neck, neckMin, neckMax, C_NECK);
-      if (neck > TH.neck_bad) cells[1].classList.add("alert");
+      cells[1].style.background = heatColorByRange(neck, M.neck[0], M.neck[1], C_NECK);
+      if (outOfRange(neck, R.neck[0], R.neck[1])) cells[1].classList.add("alert");
     }
-  
-    // 肩：色 + bad寄り強調（0以上は悪い寄り）
     if (Number.isFinite(sh)) {
-      cells[2].style.background = heatColorByRange(sh, shMin, shMax, C_SH);
-      if (sh >= TH.shoulder_bad) cells[2].classList.add("alert");
+      cells[2].style.background = heatColorByRange(sh, M.shoulder[0], M.shoulder[1], C_SH);
+      if (outOfRange(sh, R.shoulder[0], R.shoulder[1])) cells[2].classList.add("alert");
     }
   });
+}
 </script>
-
 </body>
 </html>

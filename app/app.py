@@ -1,16 +1,20 @@
-from flask import Flask, request,  render_template, jsonify
+from flask import Flask, request, render_template, jsonify
 import os
 import cv2
 import numpy as np
-from flask_sqlalchemy import SQLAlchemy
+
 from posture_check import PosePostureAnalyzer, PostureConfig
 from flask_login import login_required, current_user
+
 from config import Config
 from routes.auth import auth
 from extensions import db, login_manager
+
 from models.problem import Problem
 from models.user import User
-from models.posture import PostureLog
+from models.posture import PostureLog  # ← これは「関数」
+from datetime import timedelta
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # =========================
@@ -29,7 +33,6 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
 # -----------------------------
 # Blueprint 登録
 # -----------------------------
@@ -37,22 +40,17 @@ app.register_blueprint(auth)
 
 # -----------------------------
 # DB 初期化
+# （静的なテーブル(User, Problem等)はここで作る）
 # -----------------------------
 with app.app_context():
     db.create_all()
-# =========================
-# 姿勢解析器 初期化
-# （※ アプリ起動時に1回だけ）
-# =========================
 
-
+# =========================
+# 姿勢解析器 初期化（アプリ起動時に1回）
+# =========================
 MODEL_PATH = os.path.join(
-    BASE_DIR,
-    "static",
-    "models",
-    "pose_landmarker_full.task"
+    BASE_DIR, "static", "models", "pose_landmarker_full.task"
 )
-
 analyzer = PosePostureAnalyzer(MODEL_PATH, PostureConfig())
 
 
@@ -61,18 +59,21 @@ def index():
     problems = Problem.query.all()
     return render_template("index.html", problems=problems)
 
+
 @app.route("/problem/<int:id>")
 def show_problem(id):
     p = Problem.query.get(id)
     return render_template("problem.html", problem=p)
+
 
 @app.route("/debug")
 def debug():
     return render_template("debug.html")
 
 
-
-
+# -----------------------------
+# 画像解析
+# -----------------------------
 @app.post("/analyze")
 @login_required
 def analyze():
@@ -84,6 +85,11 @@ def analyze():
     frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
     if frame is None:
         return jsonify({"posture": "unknown"}), 400
+
+    # ★ 動的テーブルがまだないユーザーの場合に備えて作成
+    # （毎回呼ぶと重いので本番は「初回だけ」にするのが理想）
+    LogModel = PostureLog(current_user.username)
+    db.create_all()
 
     out = analyzer.analyze_and_save(frame)
 
@@ -102,9 +108,11 @@ def analyze():
     })
 
 
-
-
+# -----------------------------
+# キャリブレーション
+# -----------------------------
 @app.route("/calibrate", methods=["POST"])
+@login_required
 def calibrate():
     file = request.files.get("image")
     if not file:
@@ -112,69 +120,84 @@ def calibrate():
 
     img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
     out = analyzer.analyze(img)
-    
+
     if out is None:
         return jsonify({"error": "no pose detected"}), 400
-    
-    analyzer.calibrate(out["metrics"])  # ← metrics だけ渡す
-    
+
+    analyzer.calibrate(out["metrics"])
+
     return jsonify({
         "status": "calibrated",
         "baseline": {k: round(v, 3) for k, v in out["metrics"].items()}
     })
 
-from datetime import timedelta
 
+# -----------------------------
+# ログ表示
+# -----------------------------
 @app.route('/logs')
+@login_required
 def show_logs():
-    if not current_user.is_authenticated:
-        return "ログインしてください", 401
-
     page = int(request.args.get('page', 1))
-    per_page = 60  # 最終的にページに出すログ数
 
-    # ログイン中ユーザーのログを最新順で取得
-    query = PostureLog.query.filter_by(user_id=current_user.id).order_by(PostureLog.created_at.desc())
-    
-    # 一度に多めに取得（間引きや日付分割用）
-    logs = query.limit(1000).all()  # 1000件くらい取って間引く
-    logs.reverse()  # 古い順に
+    # ★ ここが最大の修正点：ユーザーごとの動的モデルを取得して query する
+    LogModel = PostureLog(current_user.username)
+    db.create_all()  # 念のため（初回ユーザー）
 
-    filtered_logs = []
+    query = (
+        LogModel.query
+        .filter_by(user_id=current_user.id)
+        .order_by(LogModel.created_at.asc())
+    )
+    logs = query.all()
+
+    pages = []
+    current_page = []
     last_time = None
+    last_page_time = None
+
     for log in logs:
-        # 前回ログがない場合は追加
         if last_time is None:
-            filtered_logs.append(log)
+            current_page.append(log)
+            last_time = log.created_at
+            last_page_time = log.created_at
+            continue
+
+        time_diff = (log.created_at - last_time).total_seconds()
+        page_diff = (log.created_at - last_page_time).total_seconds()
+
+        # 5分以上空いたらページを分ける
+        if page_diff >= 5 * 60:
+            pages.append(current_page)
+            current_page = [log]
+            last_page_time = log.created_at
             last_time = log.created_at
             continue
 
-        # 2秒以上空いている場合は追加
-        if (log.created_at - last_time).total_seconds() >= 2:
-            filtered_logs.append(log)
+        # 2秒以上間隔があれば追加
+        if time_diff >= 2:
+            current_page.append(log)
             last_time = log.created_at
-            continue
 
-        # 日付が変わった場合は追加
-        if log.created_at.date() != last_time.date():
-            filtered_logs.append(log)
-            last_time = log.created_at
-            continue
+    if current_page:
+        pages.append(current_page)
 
-    # ページング
-    start = (page - 1) * per_page
-    end = start + per_page
-    page_logs = filtered_logs[start:end]
-    has_next = end < len(filtered_logs)
+    # ページ番号に応じて出力
+    if page - 1 < len(pages):
+        page_logs = pages[page - 1]
+        has_next = page < len(pages)
+    else:
+        page_logs = []
+        has_next = False
 
     return render_template('logs.html', logs=page_logs, page=page, has_next=has_next)
-
 
 
 @app.route("/vrm-pose")
 @login_required
 def vrm_pose():
     return render_template("vrm_pose.html")
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True, threaded=True)
