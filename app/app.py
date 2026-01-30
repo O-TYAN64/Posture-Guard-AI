@@ -193,11 +193,5 @@ def show_logs():
     return render_template('logs.html', logs=page_logs, page=page, has_next=has_next)
 
 
-@app.route("/vrm-pose")
-@login_required
-def vrm_pose():
-    return render_template("vrm_pose.html")
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True, threaded=True)
