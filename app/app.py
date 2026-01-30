@@ -4,12 +4,13 @@ import cv2
 import numpy as np
 from flask_sqlalchemy import SQLAlchemy
 from posture_check import PosePostureAnalyzer, PostureConfig
+from flask_login import login_required, current_user
 from config import Config
 from routes.auth import auth
 from extensions import db, login_manager
 from models.problem import Problem
 from models.user import User
-
+from models.posture import PostureLog
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # =========================
@@ -73,6 +74,7 @@ def debug():
 
 
 @app.post("/analyze")
+@login_required
 def analyze():
     file = request.files.get("image", None)
     if file is None:
@@ -83,20 +85,18 @@ def analyze():
     if frame is None:
         return jsonify({"posture": "unknown"}), 400
 
-    out = analyzer.analyze(frame)
+    out = analyzer.analyze_and_save(frame)
+
     if out is None:
-        # 人なし（pose_world_landmarksなし）
         return jsonify({"posture": "unknown", "landmarks": []})
 
-    posture = analyzer.judge(out["metrics"])
-
-    # 2Dランドマークがないフレームのケア（描画しないがUIは更新可能）
     landmarks_2d = out["landmarks"] if out["landmarks"] is not None else []
 
     return jsonify({
-        "posture": posture,                    # "good" / "bad"
+        "posture": out["judge"],               # good / bad
+        "posture_type": out["posture_type"],   # slouch 等
         "metrics": out["metrics"],
-        "landmarks": landmarks_2d,             # ← None の代わりに []
+        "landmarks": landmarks_2d,
         "world_landmarks": out["world_landmarks"],
         "connections": out["connections"]
     })
@@ -123,7 +123,33 @@ def calibrate():
         "baseline": {k: round(v, 3) for k, v in out["metrics"].items()}
     })
 
+@app.route('/logs')
+def show_logs():
+    page = int(request.args.get('page', 1))
+    per_page = 30  # まず大量に取得してから間引く
+    query = PostureLog.query.order_by(PostureLog.created_at.desc())
+    
+    logs = query.offset((page-1)*per_page).limit(per_page).all()
+    logs.reverse()  # 古い順に戻す
 
+    # 2秒ごとに間引く
+    filtered_logs = []
+    last_time = None
+    for log in logs:
+        if last_time is None or (log.created_at - last_time).total_seconds() >= 2:
+            filtered_logs.append(log)
+            last_time = log.created_at
+
+    # 次ページがあるかチェック
+    has_next = query.offset(page*per_page).first() is not None
+    
+    return render_template('logs.html', logs=filtered_logs, page=page, has_next=has_next)
+
+
+@app.route("/vrm-pose")
+@login_required
+def vrm_pose():
+    return render_template("vrm_pose.html")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True, threaded=True)

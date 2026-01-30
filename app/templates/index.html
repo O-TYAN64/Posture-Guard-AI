@@ -16,7 +16,10 @@
 
       {% if current_user.is_admin %}
         <a href="/debug">デバック</a>
-      {% endif %}
+        <a href="/logs">ログ</a>
+      {% else %}
+        <a href="/logs">ログ</a>
+      {% endif %} 
 
       <a href="{{ url_for('auth.logout') }}">ログアウト</a>
     </section>

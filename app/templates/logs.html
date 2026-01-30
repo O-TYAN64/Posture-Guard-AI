@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='models/favicon.ico') }}">
+  <title>Posture Logs</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background:#121212; 
+      color:#eee; 
+      font-family: 'Courier New', monospace; 
+      margin:0; padding:0;
+    }
+    h1 {
+      text-align:center; 
+      margin:40px 0 20px; 
+      font-size:2.2em; 
+      text-shadow:1px 1px 3px rgba(0,0,0,0.7);
+    }
+
+    /* グラフ */
+    #postureChart { max-width:900px; margin: 40px auto; display:block; }
+
+    /* テーブル */
+    .table-container {
+      max-width:900px;
+      margin:20px auto;
+      overflow-x:auto;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      border-radius:8px;
+    }
+    table {
+      border-collapse: collapse;
+      width:100%;
+    }
+    th, td {
+      padding:10px 12px;
+      text-align:center;
+    }
+    th {
+      background-color:#1f1f1f;
+      color:#fff;
+      font-size:1em;
+      position: sticky;
+      top:0;
+      z-index:1;
+    }
+    tr:nth-child(even){ background-color:#1a1a1a; }
+    tr:hover { background-color:#333; transition:0.2s; }
+    td { border-bottom:1px solid #333; }
+
+    /* 判定アイコン */
+    .good::before {
+      content:"✔ ";
+      color:#4CAF50;
+      font-weight:bold;
+    }
+    .bad::before {
+      content:"✖ ";
+      color:#F44336;
+      font-weight:bold;
+    }
+
+    /* リンク */
+    a { text-decoration:none; color:#4FC3F7; font-weight:bold; }
+    a:hover { color:#29B6F6; }
+    .footer { text-align:center; margin:30px 0; font-size:0.95em; color:#aaa; }
+
+    /* ページネーション */
+    .pagination { text-align:center; margin: 20px 0; }
+    .pagination a { margin: 0 5px; color:#4FC3F7; text-decoration:none; }
+    .pagination a.current { font-weight:bold; text-decoration:underline; }
+  </style>
+</head>
+<body>
+
+<h1>姿勢ログ</h1>
+
+<!-- グラフ -->
+<canvas id="postureChart"></canvas>
+
+<!-- テーブル -->
+<div class="table-container">
+  <table>
+    <tr>
+      <th>時刻</th>
+      <th>判定</th>
+      <th>体幹</th>
+      <th>首</th>
+      <th>肩</th>
+    </tr>
+    {% for log in logs %}
+    <tr>
+      <td>{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+      <td class="{{ log.judge }}">{{ log.posture }}</td>
+      <td>{{ "%.2f"|format(log.torso_angle) }}</td>
+      <td>{{ "%.2f"|format(log.neck_angle) }}</td>
+      <td>{{ "%.2f"|format(log.shoulder_tilt) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<!-- ページネーション -->
+<div class="pagination">
+  {% if page > 1 %}
+    <a href="{{ url_for('show_logs', page=page-1) }}">← 前へ</a>
+  {% endif %}
+  <span class="current">ページ {{ page }}</span>
+  {% if has_next %}
+    <a href="{{ url_for('show_logs', page=page+1) }}">次へ →</a>
+  {% endif %}
+</div>
+
+<div class="footer">
+  <a href="/">← 戻る</a>
+</div>
+
+<script>
+// 時刻ラベル
+const labels = [{% for log in logs %}"{{ log.created_at.strftime('%H:%M:%S') }}",{% endfor %}];
+
+// 2秒間隔で間引く
+function filterData(arr, labels){
+    const filteredData = [];
+    const filteredLabels = [];
+    let lastTime = null;
+    for(let i=0;i<arr.length;i++){
+        const t = new Date("1970-01-01T" + labels[i]);
+        if(!lastTime || (t-lastTime)/1000 >=2){
+            filteredData.push(arr[i]);
+            filteredLabels.push(labels[i]);
+            lastTime = t;
+        }
+    }
+    return {data:filteredData, labels:filteredLabels};
+}
+
+// データ
+const torsoData = [{% for log in logs %}{{ log.torso_angle }},{% endfor %}];
+const neckData = [{% for log in logs %}{{ log.neck_angle }},{% endfor %}];
+const shoulderData = [{% for log in logs %}{{ log.shoulder_tilt }},{% endfor %}];
+
+const filteredTorso = filterData(torsoData, labels);
+const filteredNeck = filterData(neckData, labels);
+const filteredShoulder = filterData(shoulderData, labels);
+
+const data = {
+    labels: filteredTorso.labels,
+    datasets:[
+        {
+            label:'体幹角度',
+            data:filteredTorso.data,
+            borderColor:'#4CAF50',
+            backgroundColor:'rgba(76,175,80,0.3)',
+            tension:0.3,
+            pointRadius:3,
+            borderWidth:2
+        },
+        {
+            label:'首角度',
+            data:filteredNeck.data,
+            borderColor:'#FFEB3B',
+            backgroundColor:'rgba(255,235,59,0.3)',
+            tension:0.3,
+            pointRadius:3,
+            borderWidth:2
+        },
+        {
+            label:'肩傾き',
+            data:filteredShoulder.data,
+            borderColor:'#F44336',
+            backgroundColor:'rgba(244,67,54,0.3)',
+            tension:0.3,
+            pointRadius:3,
+            borderWidth:2
+        }
+    ]
+};
+
+const config = {
+    type:'line',
+    data:data,
+    options:{
+        responsive:true,
+        plugins:{
+            legend:{ labels:{ color:'#eee', boxWidth:15, boxHeight:10 } },
+            tooltip:{ mode:'index', intersect:false }
+        },
+        interaction:{ mode:'nearest', axis:'x', intersect:false },
+        scales:{
+            x:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } },
+            y:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } }
+        }
+    }
+};
+
+new Chart(document.getElementById('postureChart'), config);
+</script>
+
+</body>
+</html>

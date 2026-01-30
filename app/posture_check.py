@@ -4,9 +4,11 @@ import time
 import numpy as np
 import cv2
 import mediapipe as mp
+from flask_login import current_user
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision as mp_vision
-
+from models.posture import PostureLog
+from extensions import db
 
 # =========================
 # Config / Baseline
@@ -60,6 +62,34 @@ class EMA:
 
 
 # =========================
+# Recorder
+# =========================
+
+class PostureRecorder:
+    def save(self, user_id, metrics, judge, posture_type):
+        log = PostureLog(
+            user_id=user_id,
+            torso_angle=metrics["torso_angle"],
+            neck_angle=metrics["neck_angle"],
+            shoulder_tilt=metrics["shoulder_tilt"],
+            judge=judge,
+            posture_type=posture_type
+        )
+        db.session.add(log)
+        db.session.commit()
+
+def classify_posture(m, cfg):
+    if abs(m["torso_angle"]) > cfg.torso_angle_thr * 2:
+        return "severe_slouch"
+    if abs(m["torso_angle"]) > cfg.torso_angle_thr:
+        return "slouch"
+    if abs(m["neck_angle"]) > cfg.neck_angle_thr:
+        return "forward_head"
+    if abs(m["shoulder_tilt"]) > cfg.shoulder_tilt_thr:
+        return "shoulder_tilt"
+    return "normal"
+
+# =========================
 # Calibrator
 # =========================
 
@@ -86,6 +116,7 @@ class PosePostureAnalyzer:
     def __init__(self, model_path: str, cfg: PostureConfig):
         self.cfg = cfg
         self.baseline: PostureBaseline | None = None
+        self.recorder = PostureRecorder()
         self._locked_center = None
         self._lock_dist_thr = 0.6  
 
@@ -291,3 +322,37 @@ class PosePostureAnalyzer:
 
         return "bad" if bad else "good"
 
+
+    def analyze_and_save(self, frame):
+        out = self.analyze(frame)
+        if out is None:
+            return None
+
+        metrics = out["metrics"]
+        judge = self.judge(metrics)
+
+        # 姿勢タイプ判定（例）
+        if metrics["neck_angle"] > 15:
+            posture_type = "bad_slouch"
+        elif metrics["neck_angle"] > 8:
+            posture_type = "slouch"
+        else:
+            posture_type = "normal"
+
+        log = PostureLog(
+            user_id=current_user.id,
+            posture=judge,
+            posture_type=posture_type,
+            torso_angle=metrics["torso_angle"],
+            neck_angle=metrics["neck_angle"],
+            shoulder_tilt=metrics["shoulder_tilt"]
+        )
+
+        db.session.add(log)
+        db.session.commit()
+
+        return {
+            **out,
+            "judge": judge,
+            "posture_type": posture_type
+        }
