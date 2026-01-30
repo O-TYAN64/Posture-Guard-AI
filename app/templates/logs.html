@@ -8,102 +8,163 @@
 
   <style>
     body {
-      background:#121212; 
-      color:#eee; 
-      font-family: 'Courier New', monospace; 
+      background:#121212;
+      color:#eee;
+      font-family: 'Courier New', monospace;
       margin:0; padding:0;
+      font-size: 0.85em;
     }
+
     h1 {
-      text-align:center; 
-      margin:40px 0 20px; 
-      font-size:2.2em; 
+      text-align:center;
+      margin:30px 0 15px;
+      font-size:1.65em;
       text-shadow:1px 1px 3px rgba(0,0,0,0.7);
     }
 
     /* グラフ */
-    #postureChart { max-width:900px; margin: 40px auto; display:block; }
-
-    /* テーブル */
-    .table-container {
-      max-width:900px;
-      margin:20px auto;
-      overflow-x:auto;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
-      border-radius:8px;
+    .chart-container{
+      max-width:675px;
+      margin: 15px auto 10px;
+      padding: 0 8px;
+      height: 315px;
     }
+
+    #postureChart{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    /* ======== テーブル可視化改善 here ======== */
+
+    .table-container {
+      max-width:675px;
+      margin:8px auto 15px;
+      overflow:auto;
+      max-height: 40vh;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      border-radius:6px;
+    }
+
     table {
       border-collapse: collapse;
       width:100%;
+      font-variant-numeric: tabular-nums;
     }
+
     th, td {
-      padding:10px 12px;
+      padding:8px 10px;
       text-align:center;
+      font-size:0.90em;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      white-space: nowrap;
     }
+
     th {
       background-color:#1f1f1f;
       color:#fff;
-      font-size:1em;
       position: sticky;
       top:0;
-      z-index:1;
-    }
-    tr:nth-child(even){ background-color:#1a1a1a; }
-    tr:hover { background-color:#333; transition:0.2s; }
-    td { border-bottom:1px solid #333; }
-
-    /* 判定アイコン */
-    .good::before {
-      content:"✔ ";
-      color:#4CAF50;
-      font-weight:bold;
-    }
-    .bad::before {
-      content:"✖ ";
-      color:#F44336;
-      font-weight:bold;
+      z-index:3;
     }
 
-    /* リンク */
-    a { text-decoration:none; color:#4FC3F7; font-weight:bold; }
-    a:hover { color:#29B6F6; }
-    .footer { text-align:center; margin:30px 0; font-size:0.95em; color:#aaa; }
+    /* 奇数行 / 偶数行 */
+    tr:nth-child(even){ background-color:#171717; }
+    tr:nth-child(odd){ background-color:#1e1e1e; }
 
-    /* ページネーション */
-    .pagination { text-align:center; margin: 20px 0; }
-    .pagination a { margin: 0 5px; color:#4FC3F7; text-decoration:none; }
+    /* 行に判定ごとの背景色を付けて見やすく */
+    tr.good { background: linear-gradient(90deg, rgba(76,175,80,0.15), rgba(76,175,80,0.05)); }
+    tr.bad  { background: linear-gradient(90deg, rgba(244,67,54,0.15), rgba(244,67,54,0.05)); }
+
+    tr:hover { background-color:rgba(79,195,247,0.10) !important; }
+
+    /* 時刻列を固定 */
+    td.col-time, th.col-time {
+      position: sticky;
+      left: 0;
+      z-index: 4;
+      background:#181818;
+      box-shadow: 4px 0 6px rgba(0,0,0,0.4);
+    }
+
+    /* 判定を pill スタイルに */
+    .pill {
+      padding:4px 10px;
+      border-radius:999px;
+      font-weight:700;
+      border:1px solid rgba(255,255,255,0.2);
+    }
+    .good .pill { background:rgba(76,175,80,0.25); color:#bdf8c0; border-color:rgba(76,175,80,0.4); }
+    .bad  .pill { background:rgba(244,67,54,0.25); color:#ffc0c0; border-color:rgba(244,67,54,0.4); }
+
+    /* ヒートマップ + 閾値超え強調 */
+    td.metric { transition:0.2s; }
+    td.metric.alert {
+      outline:2px solid rgba(255,80,80,0.7);
+      border-radius:6px;
+      box-shadow:0 0 0 3px rgba(255,80,80,0.25);
+    }
+
+    /* ======== end table improve ======== */
+
+    .footer {
+      text-align:center;
+      margin:20px 0;
+      font-size:0.9em;
+      color:#aaa;
+    }
+
+    .pagination { text-align:center; margin: 15px 0; }
+    .pagination a { margin: 0 4px; color:#4FC3F7; text-decoration:none; }
     .pagination a.current { font-weight:bold; text-decoration:underline; }
   </style>
 </head>
+
 <body>
 
 <h1>姿勢ログ</h1>
 
-<!-- グラフ -->
-<canvas id="postureChart"></canvas>
+<div class="chart-container">
+  <canvas id="postureChart"></canvas>
+</div>
 
-<!-- テーブル -->
 <div class="table-container">
   <table>
     <tr>
-      <th>時刻</th>
+      <th class="col-time">時刻</th>
       <th>判定</th>
       <th>体幹</th>
       <th>首</th>
       <th>肩</th>
     </tr>
+
     {% for log in logs %}
-    <tr>
-      <td>{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-      <td class="{{ log.judge }}">{{ log.posture }}</td>
-      <td>{{ "%.2f"|format(log.torso_angle) }}</td>
-      <td>{{ "%.2f"|format(log.neck_angle) }}</td>
-      <td>{{ "%.2f"|format(log.shoulder_tilt) }}</td>
+    <tr class="{{ log.judge }}" 
+        data-torso="{{ log.torso_angle }}"
+        data-neck="{{ log.neck_angle }}"
+        data-shoulder="{{ log.shoulder_tilt }}">
+
+      <td class="col-time">{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+
+      <td class="{{ log.judge }}">
+        <span class="pill">{{ log.posture }}</span>
+      </td>
+
+      <td class="metric">{{ "%.2f"|format(log.torso_angle) }}</td>
+      <td class="metric">{{ "%.2f"|format(log.neck_angle) }}</td>
+      <td class="metric">{{ "%.2f"|format(log.shoulder_tilt) }}</td>
+
     </tr>
     {% endfor %}
   </table>
 </div>
 
-<!-- ページネーション -->
+<!-- pagination -->
 <div class="pagination">
   {% if page > 1 %}
     <a href="{{ url_for('show_logs', page=page-1) }}">← 前へ</a>
@@ -119,85 +180,146 @@
 </div>
 
 <script>
-// 時刻ラベル
-const labels = [{% for log in logs %}"{{ log.created_at.strftime('%H:%M:%S') }}",{% endfor %}];
+  /* ======== Chart.js（あなたのまま） ======== */
 
-// 2秒間隔で間引く
-function filterData(arr, labels){
-    const filteredData = [];
-    const filteredLabels = [];
-    let lastTime = null;
-    for(let i=0;i<arr.length;i++){
-        const t = new Date("1970-01-01T" + labels[i]);
-        if(!lastTime || (t-lastTime)/1000 >=2){
-            filteredData.push(arr[i]);
-            filteredLabels.push(labels[i]);
-            lastTime = t;
-        }
-    }
-    return {data:filteredData, labels:filteredLabels};
-}
+  const labels = [{% for log in logs %}"{{ log.created_at.strftime('%H:%M:%S') }}",{% endfor %}];
 
-// データ
-const torsoData = [{% for log in logs %}{{ log.torso_angle }},{% endfor %}];
-const neckData = [{% for log in logs %}{{ log.neck_angle }},{% endfor %}];
-const shoulderData = [{% for log in logs %}{{ log.shoulder_tilt }},{% endfor %}];
+  function filterData(arr, labels){
+      const filteredData = [];
+      const filteredLabels = [];
+      let lastTime = null;
+      for(let i=0;i<arr.length;i++){
+          const t = new Date("1970-01-01T" + labels[i]);
+          if(!lastTime || (t-lastTime)/1000 >= 2){
+              filteredData.push(arr[i]);
+              filteredLabels.push(labels[i]);
+              lastTime = t;
+          }
+      }
+      return {data:filteredData, labels:filteredLabels};
+  }
 
-const filteredTorso = filterData(torsoData, labels);
-const filteredNeck = filterData(neckData, labels);
-const filteredShoulder = filterData(shoulderData, labels);
+  const torsoData = [{% for log in logs %}{{ log.torso_angle }},{% endfor %}];
+  const neckData = [{% for log in logs %}{{ log.neck_angle }},{% endfor %}];
+  const shoulderData = [{% for log in logs %}{{ log.shoulder_tilt }},{% endfor %}];
 
-const data = {
-    labels: filteredTorso.labels,
-    datasets:[
-        {
-            label:'体幹角度',
-            data:filteredTorso.data,
-            borderColor:'#4CAF50',
-            backgroundColor:'rgba(76,175,80,0.3)',
-            tension:0.3,
-            pointRadius:3,
-            borderWidth:2
-        },
-        {
-            label:'首角度',
-            data:filteredNeck.data,
-            borderColor:'#FFEB3B',
-            backgroundColor:'rgba(255,235,59,0.3)',
-            tension:0.3,
-            pointRadius:3,
-            borderWidth:2
-        },
-        {
-            label:'肩傾き',
-            data:filteredShoulder.data,
-            borderColor:'#F44336',
-            backgroundColor:'rgba(244,67,54,0.3)',
-            tension:0.3,
-            pointRadius:3,
-            borderWidth:2
-        }
-    ]
-};
+  const filteredTorso = filterData(torsoData, labels);
+  const filteredNeck = filterData(neckData, labels);
+  const filteredShoulder = filterData(shoulderData, labels);
 
-const config = {
+  const data = {
+      labels: filteredTorso.labels,
+      datasets:[
+          {
+              label:'体幹角度',
+              data:filteredTorso.data,
+              borderColor:'#4CAF50',
+              backgroundColor:'rgba(76,175,80,0.3)',
+              tension:0.3,
+              pointRadius:3,
+              borderWidth:2
+          },
+          {
+              label:'首角度',
+              data:filteredNeck.data,
+              borderColor:'#FFEB3B',
+              backgroundColor:'rgba(255,235,59,0.3)',
+              tension:0.3,
+              pointRadius:3,
+              borderWidth:2
+          },
+          {
+              label:'肩傾き',
+              data:filteredShoulder.data,
+              borderColor:'#F44336',
+              backgroundColor:'rgba(244,67,54,0.3)',
+              tension:0.3,
+              pointRadius:3,
+              borderWidth:2
+          }
+      ]
+  };
+
+  new Chart(document.getElementById('postureChart'), {
     type:'line',
     data:data,
     options:{
-        responsive:true,
-        plugins:{
-            legend:{ labels:{ color:'#eee', boxWidth:15, boxHeight:10 } },
-            tooltip:{ mode:'index', intersect:false }
-        },
-        interaction:{ mode:'nearest', axis:'x', intersect:false },
-        scales:{
-            x:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } },
-            y:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } }
-        }
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{ labels:{ color:'#eee', boxWidth:15, boxHeight:10 } },
+        tooltip:{ mode:'index', intersect:false }
+      },
+      interaction:{ mode:'nearest', axis:'x', intersect:false },
+      scales:{
+        x:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } },
+        y:{ grid:{ color:'rgba(255,255,255,0.1)' }, ticks:{ color:'#eee' } }
+      }
     }
-};
+  });
 
-new Chart(document.getElementById('postureChart'), config);
+ /* ======== テーブルヒートマップ：方向性を保った閾値強調（修正版） ======== */
+  
+  const rows = document.querySelectorAll("tr[data-torso]");
+  
+  /**
+   * ✅ 初期調整値（このデータ傾向に合わせた版）
+   * - neck: goodがより負側に寄る → -49.5より大きい（負が浅い）と bad 寄り
+   * - shoulder: 0以上（正側）を bad 寄り
+   * - torso: 分離が弱いので強いalertは付けず、色で見せる
+   */
+  const TH = {
+    neck_bad: -49.5,     // neck > -49.5 を赤枠強調（bad寄り）
+    shoulder_bad: 0.0    // shoulder >= 0 を赤枠強調（bad寄り）
+  };
+  
+  // 値→ヒート色（min〜maxで濃淡、方向性を保つ）
+  function heatColorByRange(v, min, max, rgb){
+    // v を min〜max に正規化して 0..1
+    const t = Math.max(0, Math.min(1, (v - min) / ((max - min) || 1)));
+    const a = 0.06 + t * 0.34;  // 透明度：薄→濃
+    return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+  }
+  
+  // 行から列値を集めてレンジを作る（このページ分）
+  const torsoVals = [...rows].map(r => parseFloat(r.dataset.torso)).filter(Number.isFinite);
+  const neckVals  = [...rows].map(r => parseFloat(r.dataset.neck)).filter(Number.isFinite);
+  const shVals    = [...rows].map(r => parseFloat(r.dataset.shoulder)).filter(Number.isFinite);
+  
+  const torsoMin = Math.min(...torsoVals), torsoMax = Math.max(...torsoVals);
+  const neckMin  = Math.min(...neckVals),  neckMax  = Math.max(...neckVals);
+  const shMin    = Math.min(...shVals),    shMax    = Math.max(...shVals);
+  
+  // 列ごとの色
+  const C_TORSO = [76,175,80];    // 緑
+  const C_NECK  = [255,235,59];   // 黄
+  const C_SH    = [244,67,54];    // 赤
+  
+  rows.forEach(row => {
+    const torso = parseFloat(row.dataset.torso);
+    const neck  = parseFloat(row.dataset.neck);
+    const sh    = parseFloat(row.dataset.shoulder);
+  
+    const cells = row.querySelectorAll("td.metric");
+    if (cells.length < 3) return;
+  
+    // 体幹：色だけ（alertは基本付けない）
+    if (Number.isFinite(torso)) {
+      cells[0].style.background = heatColorByRange(torso, torsoMin, torsoMax, C_TORSO);
+    }
+  
+    // 首：色 + bad寄り強調（負が浅い方が悪い寄り）
+    if (Number.isFinite(neck)) {
+      cells[1].style.background = heatColorByRange(neck, neckMin, neckMax, C_NECK);
+      if (neck > TH.neck_bad) cells[1].classList.add("alert");
+    }
+  
+    // 肩：色 + bad寄り強調（0以上は悪い寄り）
+    if (Number.isFinite(sh)) {
+      cells[2].style.background = heatColorByRange(sh, shMin, shMax, C_SH);
+      if (sh >= TH.shoulder_bad) cells[2].classList.add("alert");
+    }
+  });
 </script>
 
 </body>

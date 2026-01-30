@@ -123,27 +123,52 @@ def calibrate():
         "baseline": {k: round(v, 3) for k, v in out["metrics"].items()}
     })
 
+from datetime import timedelta
+
 @app.route('/logs')
 def show_logs():
-    page = int(request.args.get('page', 1))
-    per_page = 30  # まず大量に取得してから間引く
-    query = PostureLog.query.order_by(PostureLog.created_at.desc())
-    
-    logs = query.offset((page-1)*per_page).limit(per_page).all()
-    logs.reverse()  # 古い順に戻す
+    if not current_user.is_authenticated:
+        return "ログインしてください", 401
 
-    # 2秒ごとに間引く
+    page = int(request.args.get('page', 1))
+    per_page = 60  # 最終的にページに出すログ数
+
+    # ログイン中ユーザーのログを最新順で取得
+    query = PostureLog.query.filter_by(user_id=current_user.id).order_by(PostureLog.created_at.desc())
+    
+    # 一度に多めに取得（間引きや日付分割用）
+    logs = query.limit(1000).all()  # 1000件くらい取って間引く
+    logs.reverse()  # 古い順に
+
     filtered_logs = []
     last_time = None
     for log in logs:
-        if last_time is None or (log.created_at - last_time).total_seconds() >= 2:
+        # 前回ログがない場合は追加
+        if last_time is None:
             filtered_logs.append(log)
             last_time = log.created_at
+            continue
 
-    # 次ページがあるかチェック
-    has_next = query.offset(page*per_page).first() is not None
-    
-    return render_template('logs.html', logs=filtered_logs, page=page, has_next=has_next)
+        # 2秒以上空いている場合は追加
+        if (log.created_at - last_time).total_seconds() >= 2:
+            filtered_logs.append(log)
+            last_time = log.created_at
+            continue
+
+        # 日付が変わった場合は追加
+        if log.created_at.date() != last_time.date():
+            filtered_logs.append(log)
+            last_time = log.created_at
+            continue
+
+    # ページング
+    start = (page - 1) * per_page
+    end = start + per_page
+    page_logs = filtered_logs[start:end]
+    has_next = end < len(filtered_logs)
+
+    return render_template('logs.html', logs=page_logs, page=page, has_next=has_next)
+
 
 
 @app.route("/vrm-pose")
