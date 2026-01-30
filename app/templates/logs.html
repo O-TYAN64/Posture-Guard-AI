@@ -468,10 +468,6 @@ if (N <= 1) {
     const leftPct  = (a / denom) * 100;
     const rightPct = (b / denom) * 100;
 
-    // ✅ 選択範囲とディムは「本来の位置」で描く（ズレ防止）
-    win.style.left = leftPct + "%";
-    win.style.width = Math.max(0, rightPct - leftPct) + "%";
-
     dimL.style.width = leftPct + "%";
     dimR.style.width = (100 - rightPct) + "%";
 
