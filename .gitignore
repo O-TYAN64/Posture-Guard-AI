@@ -1,0 +1,7 @@
+# 設定ファイル
+.vscode
+database.db
+
+# キャッシュ
+__pycache__/
+*.log
