@@ -5,5 +5,5 @@ app/database.db
 # キャッシュ
 models/__pycache__/
 routes/__pycache__/
-*.pyc
 app/__pycache__/
+*.pyc
