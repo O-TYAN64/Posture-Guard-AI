@@ -18,6 +18,7 @@ body {
 a {
     color: #4a6cf7;
     text-decoration: none;
+    font-weight: bold;
 }
 
 a:hover {
@@ -28,45 +29,49 @@ a:hover {
    ヘッダー
 ========================= */
 header {
+    width: 100%;
+    position: relative; 
+    background: transparent;
     text-align: center;
-    padding: 32px 16px;
+    padding: 32px 16px 24px;
 }
 
 header h1 {
-    font-size: 42px;
+    font-size: 40px;
     margin-bottom: 8px;
 }
 
+header img {
+    display: block;
+    margin: 0 auto 8px;
+}
+
 header p {
-    font-size: 20px;
+    font-size: 18px;
     color: #666;
 }
+
+
 
 /* =========================
    ログインボックス
 ========================= */
-.login-box {
+.login-fixed {
     position: fixed;
-    top: 16px;       /* 上からの余白 */
-    left: 16px;      /* 左からの余白 */
-    background: rgba(255, 255, 255, 0.9); /* 半透明背景 */
-    padding: 8px 16px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 1000;   /* 画面の最前面に */
-    text-align: left;
+    top: 24px;
+    left: 40%;
+    transform: translateX(600px); /* max-width / 2 */
+    z-index: 1000;
 }
 
-/* リンクのスタイル */
-.login-box a {
-    display: inline-block;
-    margin-right: 12px;
-    font-weight: bold;
-    color: #4a6cf7;
-}
-
-.login-box a:hover {
-    text-decoration: underline;
+.login-box{
+    position: static;  /* ← 重要 */
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px 16px;
+    border-radius: 16px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    font-size: 15px;
+    backdrop-filter: blur(6px);
 }
 
 /* =========================
@@ -75,136 +80,333 @@ header p {
 .container {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0 24px 32px;
     display: flex;
     gap: 32px;
-    padding: 0 32px 32px;
-    flex-wrap: wrap;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
-/* カメラ映像 */
+/* =========================
+   カメラ表示
+========================= */
 .camera-box {
     width: 100%;
     max-width: 640px;
-    background: black;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    border-radius: 16px;
     overflow: hidden;
-    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.2);
     display: flex;
-    align-items: center;      /* 縦中央 */
-    justify-content: center;  /* 横中央 */
+    align-items: center;
+    justify-content: center;
 }
 
-
 .camera-box video {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 /* プライバシーモード */
-.privacy video {
-    filter: blur(20px);
+.camera-box.privacy video {
+    filter: blur(18px) brightness(0.9);
 }
 
-video {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-/* ステータスボックス */
+/* =========================
+   ステータスボックス
+========================= */
 .status-box {
-    flex: 1.2;
-    min-width: 250px;
+    flex: 1;
+    min-width: 300px;
+    max-width: 420px;
     background: #fff;
-    border-radius: 16px;
-    padding: 32px 24px;
+    border-radius: 20px;
+    padding: 28px 24px;
     box-shadow: 0 12px 32px rgba(0,0,0,0.1);
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
+/* =========================
+   修正版：status-box 内ボタン整理
+========================= */
+
+/* 共通：status-box内のicon-btnは一旦リセット */
+.status-box .icon-btn {
+    width: 100%;
+    box-shadow: none;
+    transform: none;
+}
+
+/* =========================
+   計測開始（そのまま通常ボタン）
+========================= */
+#startBtn {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+    border-radius: 14px;
+}
 
 
-/* 姿勢表示 */
+
+/* hoverで動かない */
+#privacyBtn:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+
+/* =========================
+   ボタン間隔（画像寄せ）
+========================= */
+.status-box .button-group {
+    gap: 14px;
+}
+
+
+/* 姿勢状態 */
+/* posture表示（大きく・強調） */
 .posture {
-    font-size: clamp(32px, 6vw, 48px);
-    font-weight: bold;
-    margin-bottom: 12px;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
 }
 
-.posture.good {
-    color: #2ecc71;
+/* 状態別 */
+.posture-good {
+    color: #00c853; /* 緑 */
 }
 
-.posture.bad {
-    color: #e74c3c;
+.posture-bad {
+    color: #ff5252; /* 赤 */
 }
 
-/* スコア表示 */
-#score {
-    font-size: clamp(48px, 12vw, 72px);
-    font-weight: bold;
-    margin-bottom: 16px;
+.posture-unknown {
+    color: #9e9e9e; /* グレー */
 }
 
 /* メッセージ */
-#message {
-    font-size: 20px;
-    color: #555;
-    margin-bottom: 24px;
+.message {
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
 }
 
-/* 計測開始ボタン */
-button {
-    background: #4a6cf7;
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    padding: 16px 32px;
-    font-size: 20px;
-    cursor: pointer;
-    transition: background 0.3s;
+.msg-good {
+    color: #00acc1;
+    margin-bottom: 12px;
 }
 
-button:hover {
-    background: #3b5bdb;
+.msg-bad {
+    color: #ff6f00;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.msg-muted {
+    color: #aaa;
+    margin-bottom: 12px;
+}
+
+/* =========================
+   ボタン個別カラー
+========================= */
+
+/* 計測開始（スタート） */
+#startBtn {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+#startBtn:hover {
+    background: linear-gradient(135deg, #27ae60, #219150);
+}
+
+
+
+/* =========================
+   未ログイン時ボタン
+========================= */
+.status-box > p button {
+    margin: 8px;
 }
 
 /* =========================
    レスポンシブ
 ========================= */
-@media (max-width: 992px) {
-    .container {
-        gap: 24px;
-        padding: 0 16px 24px;
-    }
-}
-
 @media (max-width: 768px) {
+    header h1 {
+        font-size: 32px;
+    }
+
+    #score {
+        font-size: 56px;
+    }
+
     .container {
         flex-direction: column;
         align-items: center;
-        gap: 24px;
     }
+
     .status-box {
-        padding: 24px 16px;
+        max-width: 100%;
     }
 }
 
 /* =========================
-   ボタングループ
+   計測開始ボタン
 ========================= */
-.button-group {
-    display: flex;
-    flex-direction: column; /* ← 縦並び */
-    gap: 16px;              /* ← ボタン間の余白 */
+#startBtn {
     width: 100%;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
-.button-group button {
-    width: 100%;            /* ← 横幅を揃える */
+#startBtn:hover {
+    transform: translateY(-2px);
+}
+
+/* =========================
+   ミニボタン（プライバシー / カメラ 共通）
+========================= */
+.icon-btn {
+    background: none;
+    border: none;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.icon-btn img {
+    width: 28px;
+    height: 28px;
+}
+
+/* hoverで動かさない */
+.icon-btn:hover {
+    transform: none;
+}
+
+/* =========================
+   状態表現
+========================= */
+
+/* プライバシー ON */
+/* #privacyBtn.active {
+
+} */
+
+/* カメラ OFF */
+#toggleCameraBtn.off {
+    opacity: 0.45;
+}
+
+/* =========================
+   ミニボタン横並び
+========================= */
+.mini-button-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+}
+
+
+/* 横並び時も中央寄せ */
+.mini-button-row .icon-btn {
+    width: 120px;        /* 横幅も固定（重要） */
+    height: 90px;        /* ← ここで完全に揃う */
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    background: none;
+    border: none;
+    padding: 0;
+
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.mini-button-row .icon-btn img {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 6px;
+}
+
+.mini-button-row .icon-btn span {
+    display: block;
+    height: 2.4em;          /* ← 2行分を確保 */
+    line-height: 1.2;
+    text-align: center;
+}
+
+/* =========================
+   表示（中央・小）
+========================= */
+#privacyBtn,#toggleCameraBtn {
+    background: none !important;
+    border: none;
+    padding: 0;
+    margin-top: 10px;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0px;
+}
+
+#login {
+    width: 100%;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+    background: linear-gradient(135deg, #ffffff, #ffffff);
+    color: #111111;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    border: 1px solid #ffffff;
+}
+#register {
+    width: 100%;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+    background: linear-gradient(135deg, #000000, #000000);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    border: 1px solid #000000;
+}
+
+.hidden {
+    visibility: hidden;   /* 見えない */
+    pointer-events: none; /* 押せない */
 }

@@ -7,9 +7,19 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 <body>
+  <div class="left-panel">
+    <div class="left-content">
+      <img src="{{ url_for('static', filename='models/favicon.ico') }}" class="logo">
+      <h2>マイページへログイン</h2>
+      <p>
+        Posture Guard AI<br>
+        サービスをご利用いただけます
+      </p>
+    </div>
+  </div>
+
 <div class="login-box">
   <h1>ログイン</h1>
-
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -21,14 +31,13 @@
   <form method="post">
     <input name="username" placeholder="ユーザー名"><br>
     <input name="password" type="password" placeholder="パスワード"><br>
-    <button type="submit">ログイン</button>
+    <button class="btn-register" type="submit">ログイン</button>
   </form>
 
-  <a href="/register">新規登録</a><br>
-  {% if current_user.is_authenticated and current_user.is_admin %}
-  <a href="/admin/problems">管理画面</a>
-  {% endif %}
+  <h3 align="center"> アカウントをお持ちでないですか？ </h3>
+  <button class="btn-login" onclick="location.href='/register'">新規登録</button>
 </div>
 
 </body>
 </html>
+  
