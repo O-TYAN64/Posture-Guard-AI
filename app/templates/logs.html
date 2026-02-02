@@ -244,6 +244,71 @@
 
     a{ text-decoration:none; color:#4FC3F7; font-weight:bold; }
     a:hover{ color:#29B6F6; }
+
+    /* ===== 同期用：テーブル選択表示（安定版） ===== */
+    /* trにoutlineは使わない（stickyやz-indexで欠けることがある） */
+    tr.selected{
+      /* 背景をほんのり */
+      background-color: rgba(79,195,247,0.06) !important;
+    }
+
+    /* 行の枠を「各セルのinset影」で描く → 途切れにくい */
+    tr.selected td{
+      position: relative;
+      z-index: 2; /* alertやhoverと競合しにくく */
+      box-shadow:
+        inset 0  2px 0 rgba(79,195,247,0.95),  /* 上 */
+        inset 0 -2px 0 rgba(79,195,247,0.95);  /* 下 */
+    }
+
+    /* 左端セルに左枠を追加 */
+    tr.selected td:first-child{
+      box-shadow:
+        inset  2px 0 0 rgba(79,195,247,0.95),  /* 左 */
+        inset 0  2px 0 rgba(79,195,247,0.95),  /* 上 */
+        inset 0 -2px 0 rgba(79,195,247,0.95);  /* 下 */
+    }
+
+    /* 右端セルに右枠を追加 */
+    tr.selected td:last-child{
+      box-shadow:
+        inset -2px 0 0 rgba(79,195,247,0.95),  /* 右 */
+        inset 0  2px 0 rgba(79,195,247,0.95),  /* 上 */
+        inset 0 -2px 0 rgba(79,195,247,0.95);  /* 下 */
+    }
+
+    /* sticky列（時刻）が枠の上に来るように */
+    tr.selected td.col-time{
+      z-index: 5; /* sticky列を前面へ */
+      background: #181818; /* 既存の背景を維持 */
+    }
+
+    /* ===== 選択セル（クリックしたセル） ===== */
+    td.selected-cell{
+      position: relative;
+      z-index: 6;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.55);
+      border-radius: 6px;
+    }
+
+    /* ===== alert（赤枠）と selected-cell が両方つく場合の見栄え調整 ===== */
+    td.metric.alert{
+      position: relative;
+      z-index: 4;
+    }
+
+    /* alertかつ選択セル：白枠と赤枠を両立 */
+    td.metric.alert.selected-cell{
+      box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,0.55),
+        inset 0 0 0 4px rgba(255,80,80,0.70);
+    }
+
+    /* ===== 表示範囲外（ナビで選択中の期間外） ===== */
+    tr.outside-range{
+      opacity: 0.20;
+      filter: grayscale(35%);
+    }
   </style>
 </head>
 
@@ -294,6 +359,7 @@
 
       {% for log in logs %}
       <tr class="{{ log.judge }}"
+          data-iso="{{ log.created_at.strftime('%Y-%m-%dT%H:%M:%S') }}"
           data-torso="{{ log.torso_angle }}"
           data-neck="{{ log.neck_angle }}"
           data-shoulder="{{ log.shoulder_tilt }}">
@@ -353,7 +419,53 @@ const xMinAll = N ? xs[0] : undefined;
 const xMaxAll = N ? xs[N-1] : undefined;
 
 /* ============================
-   2) メインチャート
+   2) 縦ライン（選択位置）プラグイン
+============================ */
+let selectedMs = null;
+
+const verticalMarkerPlugin = {
+  id: "verticalMarker",
+  afterDraw(chart, args, opts){
+    const t = opts?.selectedMs;
+    if (!t) return;
+
+    const xScale = chart.scales.x;
+    if (!xScale) return;
+
+    // 範囲外なら描かない
+    const min = xScale.min ?? -Infinity;
+    const max = xScale.max ??  Infinity;
+    if (t < min || t > max) return;
+
+    const x = xScale.getPixelForValue(t);
+    const ctx = chart.ctx;
+
+    ctx.save();
+
+    // 光る縦線
+    ctx.strokeStyle = "rgba(79,195,247,0.95)";
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "rgba(79,195,247,0.35)";
+    ctx.shadowBlur = 10;
+
+    ctx.beginPath();
+    ctx.moveTo(x, chart.chartArea.top);
+    ctx.lineTo(x, chart.chartArea.bottom);
+    ctx.stroke();
+
+    // 小さな点（アクセント）
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(79,195,247,1)";
+    ctx.beginPath();
+    ctx.arc(x, chart.chartArea.top + 6, 3, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+};
+
+/* ============================
+   3) メインチャート
 ============================ */
 const mainChart = new Chart(document.getElementById('postureChart'), {
   type:'line',
@@ -388,7 +500,10 @@ const mainChart = new Chart(document.getElementById('postureChart'), {
           }
         }
       },
-      decimation:{ enabled:true, algorithm:'lttb', samples:180 }
+      decimation:{ enabled:true, algorithm:'lttb', samples:180 },
+
+      // ★追加：縦ライン
+      verticalMarker:{ selectedMs: null }
     },
     scales:{
       x:{
@@ -403,13 +518,14 @@ const mainChart = new Chart(document.getElementById('postureChart'), {
         ticks:{ color:'#eee' }
       }
     }
-  }
+  },
+  plugins:[verticalMarkerPlugin] // ★追加
 });
 
 /* ============================
-   3) ナビゲータ（ミニチャート）
+   4) ナビゲータ（ミニチャート）
 ============================ */
-new Chart(document.getElementById('navChart'), {
+const navChart = new Chart(document.getElementById('navChart'), {
   type:'line',
   data:{
     datasets:[
@@ -429,13 +545,131 @@ new Chart(document.getElementById('navChart'), {
   options:{
     responsive:true,
     maintainAspectRatio:false,
-    plugins:{ legend:{ display:false }, tooltip:{ enabled:false } },
+    plugins:{
+      legend:{ display:false },
+      tooltip:{ enabled:false },
+
+      // ★追加：縦ライン
+      verticalMarker:{ selectedMs: null }
+    },
     scales:{ x:{ type:'time', display:false }, y:{ display:false } }
-  }
+  },
+  plugins:[verticalMarkerPlugin] // ★追加
 });
 
 /* ============================
-   4) Navigator UI（伸縮 + 移動 + ジャンプ）
+   5) テーブル⇄グラフ 同期ユーティリティ
+============================ */
+const tableContainer = document.querySelector(".table-container");
+const tableRowsAll = [...document.querySelectorAll("tr[data-iso]")];
+
+// 行の時刻ms（ソート版と、行への参照）
+const rowEntries = tableRowsAll
+  .map(row => ({
+    row,
+    t: luxon.DateTime.fromISO(row.dataset.iso).toMillis()
+  }))
+  .sort((a,b) => a.t - b.t);
+
+const rowTimesSorted = rowEntries.map(e => e.t);
+
+// 2分探索：最寄り時刻
+function nearestIndex(sortedArr, t){
+  let lo = 0, hi = sortedArr.length - 1;
+  if (hi < 0) return -1;
+  if (t <= sortedArr[0]) return 0;
+  if (t >= sortedArr[hi]) return hi;
+
+  while (hi - lo > 1){
+    const mid = (lo + hi) >> 1;
+    if (sortedArr[mid] <= t) lo = mid;
+    else hi = mid;
+  }
+  return (t - sortedArr[lo] <= sortedArr[hi] - t) ? lo : hi;
+}
+
+// テーブル選択表示
+function clearTableSelection(){
+  tableRowsAll.forEach(r => r.classList.remove("selected"));
+  document.querySelectorAll("td.selected-cell").forEach(td => td.classList.remove("selected-cell"));
+}
+
+function selectTableRowByElement(row, focusCellIndex = null){
+  if (!row) return;
+  clearTableSelection();
+
+  row.classList.add("selected");
+
+  // metric列のセル強調（体幹=0, 首=1, 肩=2）
+  if (focusCellIndex !== null){
+    const metrics = row.querySelectorAll("td.metric");
+    if (metrics[focusCellIndex]) metrics[focusCellIndex].classList.add("selected-cell");
+  }
+
+  // 見える位置へスクロール
+  row.scrollIntoView({ behavior:"smooth", block:"center" });
+}
+
+// データ点（系列）の最寄りインデックス
+function nearestPointIndex(series, t){
+  if (!series || !series.length) return -1;
+  let lo = 0, hi = series.length - 1;
+  if (t <= series[0].x) return 0;
+  if (t >= series[hi].x) return hi;
+
+  while (hi - lo > 1){
+    const mid = (lo + hi) >> 1;
+    if (series[mid].x <= t) lo = mid;
+    else hi = mid;
+  }
+  return (t - series[lo].x <= series[hi].x - t) ? lo : hi;
+}
+
+// msを指定してグラフ選択（縦線＋tooltip）
+function setChartSelectionByMs(t){
+  selectedMs = t;
+
+  // 縦線（メイン）
+  mainChart.options.plugins.verticalMarker = { selectedMs: selectedMs };
+
+  // 縦線（ナビ）
+  navChart.options.plugins.verticalMarker = { selectedMs: selectedMs };
+
+  // tooltip同期（最寄り点を活性化）
+  const ds = mainChart.data.datasets;
+  const active = [];
+
+  [0,1,2].forEach(di => {
+    const series = ds[di]?.data || [];
+    const pi = nearestPointIndex(series, t);
+    if (pi >= 0) active.push({ datasetIndex: di, index: pi });
+  });
+
+  if (active.length){
+    const first = active[0];
+    const pt = ds[first.datasetIndex].data[first.index];
+    const x = mainChart.scales.x.getPixelForValue(pt.x);
+    const y = mainChart.scales.y.getPixelForValue(pt.y);
+
+    mainChart.setActiveElements(active);
+    mainChart.tooltip.setActiveElements(active, {x, y});
+  }
+
+  mainChart.update("none");
+  navChart.update("none");
+}
+
+// ナビ期間外の行を薄くする
+function updateTableRangeDim(minMs, maxMs){
+  tableRowsAll.forEach(row => {
+    const t = luxon.DateTime.fromISO(row.dataset.iso).toMillis();
+    const outside = (t < minMs || t > maxMs);
+    row.classList.toggle("outside-range", outside);
+  });
+}
+
+/* ============================
+   6) Navigator UI（伸縮 + 移動 + ジャンプ）
 ============================ */
 const rMin = document.getElementById("rangeMin");
 const rMax = document.getElementById("rangeMax");
@@ -464,16 +698,14 @@ if (N <= 1) {
   }
 
   function updateNavigatorUI(a,b){
-    const denom = Math.max(1, (N - 1));
     const leftPct  = (a / denom) * 100;
     const rightPct = (b / denom) * 100;
 
     dimL.style.width = leftPct + "%";
     dimR.style.width = (100 - rightPct) + "%";
 
-    // ✅ ハンドルだけ端で切れないようにクランプ（任意だが推奨）
     const rect = rangeUI.getBoundingClientRect();
-    const knobRadiusPx = 14; // knob 28px の半分（CSSと合わせる）
+    const knobRadiusPx = 14; // knob 28px の半分
     const knobRadiusPct = (knobRadiusPx / rect.width) * 100;
 
     const safeLeft = Math.max(knobRadiusPct, Math.min(100 - knobRadiusPct, leftPct));
@@ -482,7 +714,6 @@ if (N <= 1) {
     knobL.style.left = safeLeft + "%";
     knobR.style.left = safeRight + "%";
   }
-
 
   function updateMainRange(a,b){
     const minMs = xs[a];
@@ -494,6 +725,9 @@ if (N <= 1) {
     const s = luxon.DateTime.fromMillis(minMs).toFormat("yyyy-LL-dd HH:mm:ss");
     const e = luxon.DateTime.fromMillis(maxMs).toFormat("yyyy-LL-dd HH:mm:ss");
     rangeLabel.textContent = `期間: ${s} 〜 ${e}`;
+
+    // ★追加：テーブルも期間外を薄くする
+    updateTableRangeDim(minMs, maxMs);
   }
 
   function applyRange(a,b){
@@ -532,7 +766,7 @@ if (N <= 1) {
 
   function drag(e){
     if (!mode) return;
-    
+
     const dx = e.clientX - startX;
     const delta = Math.round(dx / pxPerIndex);
 
@@ -600,19 +834,63 @@ if (N <= 1) {
     applyRange(newA, newB);
   });
 
-  // 画面サイズ変更でクランプ再計算
   window.addEventListener("resize", () => {
     applyRange(parseInt(rMin.value, 10), parseInt(rMax.value, 10));
   });
 }
 
 /* ============================
-   5) テーブルヒートマップ（自動レンジ + 両側外れ値 alert）
+   7) イベント：グラフクリック → テーブル
 ============================ */
-const tableRows = document.querySelectorAll("tr[data-torso]");
+document.getElementById("postureChart").addEventListener("click", (e) => {
+  const els = mainChart.getElementsAtEventForMode(e, "nearest", { intersect:false }, true);
+  if (!els.length) return;
+
+  const el = els[0];
+  const dp = mainChart.data.datasets[el.datasetIndex].data[el.index];
+  if (!dp) return;
+
+  const t = dp.x;
+  setChartSelectionByMs(t);
+
+  // テーブルは最寄り時刻の行を選択（ソート配列から引く）
+  const ri = nearestIndex(rowTimesSorted, t);
+  const row = rowEntries[ri]?.row;
+
+  // クリックした系列に応じてセル強調
+  const focusCell = el.datasetIndex; // 0=体幹,1=首,2=肩
+  selectTableRowByElement(row, focusCell);
+});
+
+/* ============================
+   8) イベント：テーブルクリック → グラフ（ナビも光る）
+============================ */
+tableContainer.addEventListener("click", (e) => {
+  const tr = e.target.closest("tr[data-iso]");
+  if (!tr) return;
+
+  const t = luxon.DateTime.fromISO(tr.dataset.iso).toMillis();
+
+  // どのmetricセルか（体幹/首/肩）
+  let focus = null;
+  const td = e.target.closest("td");
+  if (td && td.classList.contains("metric")){
+    const metrics = [...tr.querySelectorAll("td.metric")];
+    focus = metrics.indexOf(td);
+  }
+
+  selectTableRowByElement(tr, focus);
+  setChartSelectionByMs(t);
+});
+
+/* ============================
+   9) テーブルヒートマップ（自動レンジ + 両側外れ値 alert）
+   ※ 元のロジックを維持（tr[data-torso] でOK）
+============================ */
+const heatRows = document.querySelectorAll("tr[data-torso]");
 
 function toNums(key){
-  return [...tableRows].map(r => parseFloat(r.dataset[key])).filter(Number.isFinite);
+  return [...heatRows].map(r => parseFloat(r.dataset[key])).filter(Number.isFinite);
 }
 function quantile(arr, p){
   const a = [...arr].sort((x,y)=>x-y);
@@ -631,7 +909,7 @@ function outOfRange(v, lo, hi){
   return Number.isFinite(v) && (v < lo || v > hi);
 }
 
-if (tableRows.length){
+if (heatRows.length){
   const torsoVals = toNums("torso");
   const neckVals  = toNums("neck");
   const shVals    = toNums("shoulder");
@@ -652,7 +930,7 @@ if (tableRows.length){
   const C_NECK  = [255,235,59];
   const C_SH    = [244,67,54];
 
-  tableRows.forEach(row => {
+  heatRows.forEach(row => {
     const torso = parseFloat(row.dataset.torso);
     const neck  = parseFloat(row.dataset.neck);
     const sh    = parseFloat(row.dataset.shoulder);
