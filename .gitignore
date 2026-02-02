@@ -1,7 +1,8 @@
 # 設定ファイル
 .vscode
-database.db
+app/database.db
 
 # キャッシュ
-__pycache__/
-*.log
+models/__pycache__/
+routes/__pycache__/
+app/__pycache__/
