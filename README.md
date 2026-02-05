@@ -121,6 +121,7 @@ Posture-Guard-AI
 ## ⚙️ 使用技術
 
 * **Python 3.10+**
+* **SQLite**
 * **MediaPipe Pose**
 * **OpenCV**
 * **Flask**（または FastAPI）
