@@ -150,6 +150,12 @@ header p {
     border-radius: 14px;
 }
 
+#logBtn {
+    background: linear-gradient(135deg, #2e53cc, #2771ae);
+    color: #fff;
+    border-radius: 14px;
+}
+
 
 
 /* hoverで動かない */
@@ -224,6 +230,13 @@ header p {
     background: linear-gradient(135deg, #27ae60, #219150);
 }
 
+#logBtn {
+    background: linear-gradient(135deg, #2e53cc, #2771ae);
+}
+
+#logBtn:hover {
+    background: linear-gradient(135deg, #2e53cc, #2771ae);
+}
 
 
 /* =========================
@@ -277,6 +290,24 @@ header p {
     transform: translateY(-2px);
 }
 
+#logBtn {
+    width: 100%;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+
+    background: linear-gradient(135deg, #2e53cc, #2771ae);
+    color: #fff;
+
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+#logBtn:hover {
+    transform: translateY(-2px);
+}
 /* =========================
    ミニボタン（プライバシー / カメラ 共通）
 ========================= */

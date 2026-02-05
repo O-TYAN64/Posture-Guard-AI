@@ -13,6 +13,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
 
   <style>
+    /* =========================
+       Base
+    ========================= */
     html, body { height: 100%; }
     body{
       background:#121212;
@@ -21,8 +24,8 @@
       margin:0;
       font-size:0.90em;
     }
-
     .page{ min-height:100vh; display:flex; flex-direction:column; }
+
     h1{
       text-align:center;
       margin:10px 0 6px;
@@ -30,7 +33,9 @@
       text-shadow:1px 1px 3px rgba(0,0,0,0.7);
     }
 
-    /* ===== メインチャート ===== */
+    /* =========================
+       Main chart
+    ========================= */
     .chart-container{
       width: min(1100px, 96vw);
       margin: 0 auto;
@@ -47,7 +52,9 @@
       box-shadow: 0 0 12px rgba(0,0,0,0.35);
     }
 
-    /* ===== Navigator（画像風） ===== */
+    /* =========================
+       Navigator
+    ========================= */
     .navigator{
       width: min(1100px, 96vw);
       margin: 8px auto 0;
@@ -75,7 +82,6 @@
       border: 1px solid rgba(255,255,255,0.10);
     }
 
-    /* nav帯（薄水色） */
     .nav-area{
       position: relative;
       background: rgba(140, 210, 255, 0.18);
@@ -90,28 +96,24 @@
       opacity: 0.9;
     }
 
-    /* ★ navChartの上にレンジUIを重ねる（画像っぽい） */
     .range-ui.overlay{
       position:absolute;
-      inset: 10px; /* nav-area paddingと同じ */
+      inset: 10px;
       border-radius: 10px;
       user-select:none;
       -webkit-user-select:none;
       touch-action: pan-x;
     }
-
-    /* ✅ 範囲外ディム：白ではなく暗くする（重要） */
     .range-ui.overlay .dim{
       position:absolute;
       inset:0;
-      background: rgba(0,0,0,0.42); /* ★外側を暗く */
+      background: rgba(0,0,0,0.42);
       pointer-events:none;
       z-index:1;
     }
     .range-ui.overlay .dim.left{ left:0; right:auto; width:0; }
     .range-ui.overlay .dim.right{ right:0; left:auto; width:0; }
 
-    /* ✅ 選択領域：うっすら明るい（枠なし） */
     .range-ui.overlay .selection{
       position:absolute;
       top:0; bottom:0;
@@ -127,12 +129,10 @@
       cursor: grabbing;
       background: rgba(255,255,255,0.10);
     }
-
-    /* ✅ 丸いグレーのハンドル（||）を小さめに */
     .range-ui.overlay .knob{
       position:absolute;
       top:50%;
-      width: 28px;   /* 36 → 28 */
+      width: 28px;
       height: 28px;
       transform: translate(-50%, -50%);
       border-radius: 999px;
@@ -158,7 +158,6 @@
     .range-ui.overlay .knob.left{ left:0%; }
     .range-ui.overlay .knob.right{ left:100%; }
 
-    /* range inputは値管理だけ（見えない） */
     .range-ui.overlay input[type=range]{
       position:absolute;
       inset:0;
@@ -169,14 +168,15 @@
       -webkit-appearance:none;
       appearance:none;
     }
-
     .nav-hint{
       color:#888;
       font-size:0.88em;
       margin-top:6px;
     }
 
-    /* ===== テーブル ===== */
+    /* =========================
+       Table
+    ========================= */
     .table-container{
       width: min(1100px, 96vw);
       margin: 10px auto 8px;
@@ -204,8 +204,6 @@
     }
     tr:nth-child(even){ background-color:#171717; }
     tr:nth-child(odd){ background-color:#1e1e1e; }
-    tr.good{ background: linear-gradient(90deg, rgba(76,175,80,0.15), rgba(76,175,80,0.05)); }
-    tr.bad { background: linear-gradient(90deg, rgba(244,67,54,0.15), rgba(244,67,54,0.05)); }
     tr:hover{ background-color:rgba(79,195,247,0.10) !important; }
 
     td.col-time, th.col-time{
@@ -216,14 +214,44 @@
       box-shadow: 4px 0 8px rgba(0,0,0,0.45);
     }
 
+    /* ✅ pill 基本（ここが抜けると見た目変わりにくい） */
     .pill{
-      padding:4px 10px;
-      border-radius:999px;
-      font-weight:700;
-      border:1px solid rgba(255,255,255,0.2);
+      display:inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      color: #eee;
     }
-    .good .pill{ background:rgba(76,175,80,0.25); color:#bdf8c0; border-color:rgba(76,175,80,0.4); }
-    .bad  .pill{ background:rgba(244,67,54,0.25); color:#ffc0c0; border-color:rgba(244,67,54,0.4); }
+
+    /* ✅ 判定列を確実に色分け（col-judgeを狙う） */
+    td.col-judge.good{
+      background: rgba(76,175,80,0.08) !important;
+      box-shadow: inset 6px 0 0 rgba(76,175,80,0.95) !important;
+    }
+    td.col-judge.bad{
+      background: rgba(244,67,54,0.08) !important;
+      box-shadow: inset 6px 0 0 rgba(244,67,54,0.95) !important;
+    }
+
+    td.col-judge.good .pill{
+      background: rgba(76, 175, 80, 0.50) !important;
+      color: #d7ffe8 !important;
+      border-color: rgba(76, 175, 80, 0.85) !important;
+      text-shadow: 0 0 8px rgba(76, 175, 80, 0.55) !important;
+    }
+    td.col-judge.bad .pill{
+      background: rgba(244, 67, 54, 0.50) !important;
+      color: #ffe0e0 !important;
+      border-color: rgba(244, 67, 54, 0.85) !important;
+      text-shadow: 0 0 8px rgba(244, 67, 54, 0.55) !important;
+    }
+
+    /* 行全体も薄く色付けしたい場合（任意） */
+    tr.good{ background: linear-gradient(90deg, rgba(76,175,80,0.12), rgba(76,175,80,0.02)); }
+    tr.bad { background: linear-gradient(90deg, rgba(244,67,54,0.12), rgba(244,67,54,0.02)); }
 
     td.metric{ transition:0.2s; }
     td.metric.alert{
@@ -245,45 +273,35 @@
     a{ text-decoration:none; color:#4FC3F7; font-weight:bold; }
     a:hover{ color:#29B6F6; }
 
-    /* ===== 同期用：テーブル選択表示（安定版） ===== */
-    /* trにoutlineは使わない（stickyやz-indexで欠けることがある） */
-    tr.selected{
-      /* 背景をほんのり */
-      background-color: rgba(79,195,247,0.06) !important;
-    }
+    /* =========================
+       Selection / range dim
+    ========================= */
+    tr.selected{ background-color: rgba(79,195,247,0.06) !important; }
 
-    /* 行の枠を「各セルのinset影」で描く → 途切れにくい */
     tr.selected td{
       position: relative;
-      z-index: 2; /* alertやhoverと競合しにくく */
+      z-index: 2;
       box-shadow:
-        inset 0  2px 0 rgba(79,195,247,0.95),  /* 上 */
-        inset 0 -2px 0 rgba(79,195,247,0.95);  /* 下 */
+        inset 0  2px 0 rgba(79,195,247,0.95),
+        inset 0 -2px 0 rgba(79,195,247,0.95);
     }
-
-    /* 左端セルに左枠を追加 */
     tr.selected td:first-child{
       box-shadow:
-        inset  2px 0 0 rgba(79,195,247,0.95),  /* 左 */
-        inset 0  2px 0 rgba(79,195,247,0.95),  /* 上 */
-        inset 0 -2px 0 rgba(79,195,247,0.95);  /* 下 */
+        inset  2px 0 0 rgba(79,195,247,0.95),
+        inset 0  2px 0 rgba(79,195,247,0.95),
+        inset 0 -2px 0 rgba(79,195,247,0.95);
     }
-
-    /* 右端セルに右枠を追加 */
     tr.selected td:last-child{
       box-shadow:
-        inset -2px 0 0 rgba(79,195,247,0.95),  /* 右 */
-        inset 0  2px 0 rgba(79,195,247,0.95),  /* 上 */
-        inset 0 -2px 0 rgba(79,195,247,0.95);  /* 下 */
+        inset -2px 0 0 rgba(79,195,247,0.95),
+        inset 0  2px 0 rgba(79,195,247,0.95),
+        inset 0 -2px 0 rgba(79,195,247,0.95);
     }
-
-    /* sticky列（時刻）が枠の上に来るように */
     tr.selected td.col-time{
-      z-index: 5; /* sticky列を前面へ */
-      background: #181818; /* 既存の背景を維持 */
+      z-index: 5;
+      background: #181818;
     }
 
-    /* ===== 選択セル（クリックしたセル） ===== */
     td.selected-cell{
       position: relative;
       z-index: 6;
@@ -291,29 +309,52 @@
       border-radius: 6px;
     }
 
-    /* ===== alert（赤枠）と selected-cell が両方つく場合の見栄え調整 ===== */
-    td.metric.alert{
-      position: relative;
-      z-index: 4;
-    }
-
-    /* alertかつ選択セル：白枠と赤枠を両立 */
+    td.metric.alert{ position: relative; z-index: 4; }
     td.metric.alert.selected-cell{
       box-shadow:
         inset 0 0 0 2px rgba(255,255,255,0.55),
         inset 0 0 0 4px rgba(255,80,80,0.70);
     }
 
-    /* ===== 表示範囲外（ナビで選択中の期間外） ===== */
     tr.outside-range{
       opacity: 0.20;
       filter: grayscale(35%);
+    }
+
+    /* =========================
+       Login box
+    ========================= */
+    .login-fixed{
+      position:fixed;
+      top:24px;
+      right:24px;
+      z-index:1000;
+    }
+    .login-box{
+      background:rgba(82, 79, 79, 0.92);
+      padding:10px 18px;
+      border-radius:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.20);
+      font-size:0.93em;
+      backdrop-filter:blur(8px);
     }
   </style>
 </head>
 
 <body>
 <div class="page">
+
+  {% if current_user.is_authenticated %}
+  <div class="login-fixed">
+    <section class="login-box">
+      <p>ログイン中：{{ current_user.username }}</p>
+      {% if current_user.is_admin %}
+        <a href="/debug">デバック</a>
+      {% endif %}
+      <a href="{{ url_for('auth.logout') }}">ログアウト</a>
+    </section>
+  </div>
+  {% endif %}
 
   <h1>姿勢ログ</h1>
 
@@ -351,20 +392,27 @@
     <table>
       <tr>
         <th class="col-time">時刻</th>
-        <th>判定</th>
+        <th class="col-judge">判定</th>
         <th>体幹</th>
         <th>首</th>
         <th>肩</th>
       </tr>
 
       {% for log in logs %}
-      <tr class="{{ log.judge }}"
+      {% set judge = (log.judge|lower|trim) %}
+      <tr class="{{ judge }}"
           data-iso="{{ log.created_at.strftime('%Y-%m-%dT%H:%M:%S') }}"
           data-torso="{{ log.torso_angle }}"
           data-neck="{{ log.neck_angle }}"
           data-shoulder="{{ log.shoulder_tilt }}">
+
         <td class="col-time">{{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-        <td class="{{ log.judge }}"><span class="pill">{{ log.posture }}</span></td>
+
+        <!-- ✅ 判定列は col-judge を必ず付ける -->
+        <td class="col-judge {{ judge }}">
+          <span class="pill">{{ log.posture }}</span>
+        </td>
+
         <td class="metric">{{ "%.2f"|format(log.torso_angle) }}</td>
         <td class="metric">{{ "%.2f"|format(log.neck_angle) }}</td>
         <td class="metric">{{ "%.2f"|format(log.shoulder_tilt) }}</td>
@@ -384,7 +432,7 @@
   </div>
 
   <div class="footer">
-    <a href="/">← 戻る</a>
+    <a href="/">ホーム</a>
   </div>
 
 </div>
@@ -428,11 +476,9 @@ const verticalMarkerPlugin = {
   afterDraw(chart, args, opts){
     const t = opts?.selectedMs;
     if (!t) return;
-
     const xScale = chart.scales.x;
     if (!xScale) return;
 
-    // 範囲外なら描かない
     const min = xScale.min ?? -Infinity;
     const max = xScale.max ??  Infinity;
     if (t < min || t > max) return;
@@ -441,8 +487,6 @@ const verticalMarkerPlugin = {
     const ctx = chart.ctx;
 
     ctx.save();
-
-    // 光る縦線
     ctx.strokeStyle = "rgba(79,195,247,0.95)";
     ctx.lineWidth = 2;
     ctx.shadowColor = "rgba(79,195,247,0.35)";
@@ -453,7 +497,6 @@ const verticalMarkerPlugin = {
     ctx.lineTo(x, chart.chartArea.bottom);
     ctx.stroke();
 
-    // 小さな点（アクセント）
     ctx.shadowBlur = 0;
     ctx.fillStyle = "rgba(79,195,247,1)";
     ctx.beginPath();
@@ -501,8 +544,6 @@ const mainChart = new Chart(document.getElementById('postureChart'), {
         }
       },
       decimation:{ enabled:true, algorithm:'lttb', samples:180 },
-
-      // ★追加：縦ライン
       verticalMarker:{ selectedMs: null }
     },
     scales:{
@@ -519,11 +560,11 @@ const mainChart = new Chart(document.getElementById('postureChart'), {
       }
     }
   },
-  plugins:[verticalMarkerPlugin] // ★追加
+  plugins:[verticalMarkerPlugin]
 });
 
 /* ============================
-   4) ナビゲータ（ミニチャート）
+   4) ナビゲータ
 ============================ */
 const navChart = new Chart(document.getElementById('navChart'), {
   type:'line',
@@ -548,13 +589,11 @@ const navChart = new Chart(document.getElementById('navChart'), {
     plugins:{
       legend:{ display:false },
       tooltip:{ enabled:false },
-
-      // ★追加：縦ライン
       verticalMarker:{ selectedMs: null }
     },
     scales:{ x:{ type:'time', display:false }, y:{ display:false } }
   },
-  plugins:[verticalMarkerPlugin] // ★追加
+  plugins:[verticalMarkerPlugin]
 });
 
 /* ============================
@@ -563,7 +602,6 @@ const navChart = new Chart(document.getElementById('navChart'), {
 const tableContainer = document.querySelector(".table-container");
 const tableRowsAll = [...document.querySelectorAll("tr[data-iso]")];
 
-// 行の時刻ms（ソート版と、行への参照）
 const rowEntries = tableRowsAll
   .map(row => ({
     row,
@@ -573,7 +611,6 @@ const rowEntries = tableRowsAll
 
 const rowTimesSorted = rowEntries.map(e => e.t);
 
-// 2分探索：最寄り時刻
 function nearestIndex(sortedArr, t){
   let lo = 0, hi = sortedArr.length - 1;
   if (hi < 0) return -1;
@@ -588,7 +625,6 @@ function nearestIndex(sortedArr, t){
   return (t - sortedArr[lo] <= sortedArr[hi] - t) ? lo : hi;
 }
 
-// テーブル選択表示
 function clearTableSelection(){
   tableRowsAll.forEach(r => r.classList.remove("selected"));
   document.querySelectorAll("td.selected-cell").forEach(td => td.classList.remove("selected-cell"));
@@ -600,17 +636,14 @@ function selectTableRowByElement(row, focusCellIndex = null){
 
   row.classList.add("selected");
 
-  // metric列のセル強調（体幹=0, 首=1, 肩=2）
   if (focusCellIndex !== null){
     const metrics = row.querySelectorAll("td.metric");
     if (metrics[focusCellIndex]) metrics[focusCellIndex].classList.add("selected-cell");
   }
 
-  // 見える位置へスクロール
   row.scrollIntoView({ behavior:"smooth", block:"center" });
 }
 
-// データ点（系列）の最寄りインデックス
 function nearestPointIndex(series, t){
   if (!series || !series.length) return -1;
   let lo = 0, hi = series.length - 1;
@@ -625,17 +658,12 @@ function nearestPointIndex(series, t){
   return (t - series[lo].x <= series[hi].x - t) ? lo : hi;
 }
 
-// msを指定してグラフ選択（縦線＋tooltip）
 function setChartSelectionByMs(t){
   selectedMs = t;
 
-  // 縦線（メイン）
   mainChart.options.plugins.verticalMarker = { selectedMs: selectedMs };
-
-  // 縦線（ナビ）
   navChart.options.plugins.verticalMarker = { selectedMs: selectedMs };
 
-  // tooltip同期（最寄り点を活性化）
   const ds = mainChart.data.datasets;
   const active = [];
 
@@ -659,7 +687,6 @@ function setChartSelectionByMs(t){
   navChart.update("none");
 }
 
-// ナビ期間外の行を薄くする
 function updateTableRangeDim(minMs, maxMs){
   tableRowsAll.forEach(row => {
     const t = luxon.DateTime.fromISO(row.dataset.iso).toMillis();
@@ -669,7 +696,7 @@ function updateTableRangeDim(minMs, maxMs){
 }
 
 /* ============================
-   6) Navigator UI（伸縮 + 移動 + ジャンプ）
+   6) Navigator UI
 ============================ */
 const rMin = document.getElementById("rangeMin");
 const rMax = document.getElementById("rangeMax");
@@ -705,7 +732,7 @@ if (N <= 1) {
     dimR.style.width = (100 - rightPct) + "%";
 
     const rect = rangeUI.getBoundingClientRect();
-    const knobRadiusPx = 14; // knob 28px の半分
+    const knobRadiusPx = 14;
     const knobRadiusPct = (knobRadiusPx / rect.width) * 100;
 
     const safeLeft = Math.max(knobRadiusPct, Math.min(100 - knobRadiusPct, leftPct));
@@ -726,7 +753,6 @@ if (N <= 1) {
     const e = luxon.DateTime.fromMillis(maxMs).toFormat("yyyy-LL-dd HH:mm:ss");
     rangeLabel.textContent = `期間: ${s} 〜 ${e}`;
 
-    // ★追加：テーブルも期間外を薄くする
     updateTableRangeDim(minMs, maxMs);
   }
 
@@ -740,8 +766,7 @@ if (N <= 1) {
 
   applyRange(0, N - 1);
 
-  // Drag基盤
-  let mode = null; // 'left' | 'right' | 'move'
+  let mode = null;
   let startX = 0;
   let startA = 0;
   let startB = 0;
@@ -799,11 +824,9 @@ if (N <= 1) {
     try { win.releasePointerCapture(e.pointerId); } catch {}
   }
 
-  // 伸縮：左右ハンドル
   knobL.addEventListener("pointerdown", (e)=>beginDrag("left", e));
   knobR.addEventListener("pointerdown", (e)=>beginDrag("right", e));
 
-  // 移動：選択領域
   win.addEventListener("pointerdown", (e)=>{
     if (e.target === knobL || e.target === knobR) return;
     beginDrag("move", e);
@@ -813,7 +836,6 @@ if (N <= 1) {
   win.addEventListener("pointerup", endDrag);
   win.addEventListener("pointercancel", endDrag);
 
-  // ジャンプ：枠外クリック
   rangeUI.addEventListener("pointerdown", (e)=>{
     if (e.target === knobL || e.target === knobR || win.contains(e.target)) return;
 
@@ -840,7 +862,7 @@ if (N <= 1) {
 }
 
 /* ============================
-   7) イベント：グラフクリック → テーブル
+   7) グラフクリック → テーブル
 ============================ */
 document.getElementById("postureChart").addEventListener("click", (e) => {
   const els = mainChart.getElementsAtEventForMode(e, "nearest", { intersect:false }, true);
@@ -853,17 +875,15 @@ document.getElementById("postureChart").addEventListener("click", (e) => {
   const t = dp.x;
   setChartSelectionByMs(t);
 
-  // テーブルは最寄り時刻の行を選択（ソート配列から引く）
   const ri = nearestIndex(rowTimesSorted, t);
   const row = rowEntries[ri]?.row;
 
-  // クリックした系列に応じてセル強調
-  const focusCell = el.datasetIndex; // 0=体幹,1=首,2=肩
+  const focusCell = el.datasetIndex;
   selectTableRowByElement(row, focusCell);
 });
 
 /* ============================
-   8) イベント：テーブルクリック → グラフ（ナビも光る）
+   8) テーブルクリック → グラフ
 ============================ */
 tableContainer.addEventListener("click", (e) => {
   const tr = e.target.closest("tr[data-iso]");
@@ -871,7 +891,6 @@ tableContainer.addEventListener("click", (e) => {
 
   const t = luxon.DateTime.fromISO(tr.dataset.iso).toMillis();
 
-  // どのmetricセルか（体幹/首/肩）
   let focus = null;
   const td = e.target.closest("td");
   if (td && td.classList.contains("metric")){
@@ -884,8 +903,7 @@ tableContainer.addEventListener("click", (e) => {
 });
 
 /* ============================
-   9) テーブルヒートマップ（自動レンジ + 両側外れ値 alert）
-   ※ 元のロジックを維持（tr[data-torso] でOK）
+   9) ヒートマップ（元のロジック）
 ============================ */
 const heatRows = document.querySelectorAll("tr[data-torso]");
 
@@ -947,7 +965,9 @@ if (heatRows.length){
     }
     if (Number.isFinite(sh)) {
       cells[2].style.background = heatColorByRange(sh, M.shoulder[0], M.shoulder[1], C_SH);
-      if (outOfRange(sh, R.shoulder[0], R.shoulder[1])) cells[2].classList.add("alert");
+      if (outOfRange(sh, R.shVals?.[0], R.shVals?.[1])) cells[2].classList.add("alert");
+      // ↑※もしエラー出たら下の行に置き換え
+      // if (outOfRange(sh, R.shoulder[0], R.shoulder[1])) cells[2].classList.add("alert");
     }
   });
 }

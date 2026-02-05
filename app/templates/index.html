@@ -16,9 +16,6 @@
 
       {% if current_user.is_admin %}
         <a href="/debug">デバック</a>
-        <a href="/logs">ログ</a>
-      {% else %}
-        <a href="/logs">ログ</a>
       {% endif %} 
 
       <a href="{{ url_for('auth.logout') }}">ログアウト</a>
@@ -69,7 +66,8 @@
           <span>Camera ON</span>
         </button>
       </div>
-      
+      <button id="logBtn" onclick="location.href='/logs'">ログ
+      </button>
     {% else %}
       <p>
         <button id="login" onclick="location.href='/register'">新規登録</button>
