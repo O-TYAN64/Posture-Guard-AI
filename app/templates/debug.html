@@ -6,165 +6,163 @@
   <link rel="shortcut icon" href="{{ url_for('static', filename='models/favicon.ico') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/debug.css') }}">
   <title>Posture DEBUG (Skeleton)</title>
-  <style>
-    body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-           background:#111; color:#eee; text-align:center; }
-    .wrapper { position: relative; display:inline-block; }
-    video, canvas { width: 640px; height: 480px; border-radius:8px; }
-    canvas { position:absolute; left:0; top:0; pointer-events:none; z-index:1; }
-    pre { text-align:left; background:#000; color:#0f0; padding:10px; max-width:640px;
-          margin:20px auto; height:260px; overflow:auto; }
-    button { padding:10px 16px; font-weight:700; }
-  </style>
+<style>
+  body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+         background:#111; color:#eee; text-align:center; }
+  .wrapper { position: relative; display:inline-block; }
+  video, canvas { width: 640px; height: 480px; border-radius:8px; }
+  canvas { position:absolute; left:0; top:0; pointer-events:none; z-index:1; }
+  pre { text-align:left; background:#000; color:#0f0; padding:10px; max-width:640px;
+        margin:20px auto; height:260px; overflow:auto; }
+  button { padding:10px 16px; font-weight:700; }
+</style>
 </head>
 <body>
 
-<h1>Posture Analyzer DEBUG</h1>
+  <h1>Posture Analyzer DEBUG</h1>
 
-<div class="wrapper">
-  <video id="camera" autoplay muted></video>
-  <canvas id="overlay"></canvas>
-</div>
+  <div class="wrapper">
+    <video id="camera" autoplay muted></video>
+    <canvas id="overlay"></canvas>
+  </div>
 
-<br>
-<button id="cal">計測開始</button>
-<button id="startBtn">START</button>
-<br>
-<button onclick="location.href='/'">ホーム</button>
+  <br>
+  <button id="cal">計測開始</button>
+  <button id="startBtn">START</button>
+  <br>
+  <button onclick="location.href='/'">ホーム</button>
 
-<p>Posture: <span id="posture">---</span><span id="score"></span></p>
+  <p>Posture: <span id="posture">---</span><span id="score"></span></p>
 
-<pre id="json"></pre>
+  <pre id="json"></pre>
 
 
 <script>
-const video  = document.getElementById("camera");
-const canvas = document.getElementById("overlay");
-const ctx    = canvas.getContext("2d");
+  const video  = document.getElementById("camera");
+  const canvas = document.getElementById("overlay");
+  const ctx    = canvas.getContext("2d");
 
-const postureEl = document.getElementById("posture");
-const scoreEl   = document.getElementById("score");
-const jsonEl    = document.getElementById("json");
+  const postureEl = document.getElementById("posture");
+  const scoreEl   = document.getElementById("score");
+  const jsonEl    = document.getElementById("json");
 
-const startBtn = document.getElementById("startBtn");
-const calBtn   = document.getElementById("cal");
+  const startBtn = document.getElementById("startBtn");
+  const calBtn   = document.getElementById("cal");
 
-let streaming = false;
-let timerId = null;
+  let streaming = false;
+  let timerId = null;
 
-// ===== skeleton edges =====
-const DEFAULT_EDGES = [
-  [11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],
-  [23,25],[25,27],[24,26],[26,28],[27,29],[29,31],[28,30],[30,32],[0,11],[0,12]
-];
+  // ===== skeleton edges =====
+  const DEFAULT_EDGES = [
+    [11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],
+    [23,25],[25,27],[24,26],[26,28],[27,29],[29,31],[28,30],[30,32],[0,11],[0,12]
+  ];
 
-// ===== カメラ起動 =====
-startBtn.onclick = async () => {
-  if (streaming) return;
+  // ===== カメラ起動 =====
+  startBtn.onclick = async () => {
+    if (streaming) return;
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: false
-  });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
 
-  video.srcObject = stream;
+    video.srcObject = stream;
 
-  video.onloadedmetadata = () => {
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
+    video.onloadedmetadata = () => {
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+    };
+
+    streaming = true;
+    startBtn.textContent = "RUNNING";
+
+    timerId = setInterval(captureAndSend, 1000);
   };
 
-  streaming = true;
-  startBtn.textContent = "RUNNING";
+  // ===== キャリブレーション =====
+  calBtn.onclick = async () => {
+    if (!streaming) {
+      alert("先に START を押してください");
+      return;
+    }
 
-  timerId = setInterval(captureAndSend, 1000);
-};
+    const data = await sendFrame("/calibrate");
 
-// ===== キャリブレーション =====
-calBtn.onclick = async () => {
-  if (!streaming) {
-    alert("先に START を押してください");
-    return;
+    postureEl.textContent =
+      data.status === "calibrated" ? "CALIBRATED" : "FAILED";
+  };
+
+  // ===== 共通：フレーム送信 =====
+  async function sendFrame(url) {
+    if (!video.videoWidth) return {};
+
+    const tmp = document.createElement("canvas");
+    tmp.width  = video.videoWidth;
+    tmp.height = video.videoHeight;
+    tmp.getContext("2d").drawImage(video, 0, 0);
+
+    const blob = await new Promise(res =>
+      tmp.toBlob(res, "image/jpeg", 0.85)
+    );
+
+    const form = new FormData();
+    form.append("image", blob, "frame.jpg");
+
+    const res = await fetch(url, {
+      method: "POST",
+      body: form
+    });
+
+    return await res.json();
   }
 
-  const data = await sendFrame("/calibrate");
-
-  postureEl.textContent =
-    data.status === "calibrated" ? "CALIBRATED" : "FAILED";
-};
-
-// ===== 共通：フレーム送信 =====
-async function sendFrame(url) {
-  if (!video.videoWidth) return {};
-
-  const tmp = document.createElement("canvas");
-  tmp.width  = video.videoWidth;
-  tmp.height = video.videoHeight;
-  tmp.getContext("2d").drawImage(video, 0, 0);
-
-  const blob = await new Promise(res =>
-    tmp.toBlob(res, "image/jpeg", 0.85)
-  );
-
-  const form = new FormData();
-  form.append("image", blob, "frame.jpg");
-
-  const res = await fetch(url, {
-    method: "POST",
-    body: form
-  });
-
-  return await res.json();
-}
-
-// ===== 通常解析 =====
-async function captureAndSend() {
-  const data = await sendFrame("/analyze");
-  updateUI(data);
-}
-
-// ===== UI更新 =====
-function updateUI(data) {
-  jsonEl.textContent = JSON.stringify(data, null, 2);
-  postureEl.textContent = data.posture ?? "---";
-
-  if (data.metrics) {
-    const t = Math.abs(data.metrics.torso_angle ?? 0);
-    const n = Math.abs(data.metrics.neck_angle ?? 0);
-    const s = Math.abs(data.metrics.shoulder_tilt ?? 0);
-    scoreEl.textContent =
-      Math.max(0, Math.round(100 - (t*2 + n*3 + s*1.5)));
+  // ===== 通常解析 =====
+  async function captureAndSend() {
+    const data = await sendFrame("/analyze");
+    updateUI(data);
   }
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // ===== UI更新 =====
+  function updateUI(data) {
+    jsonEl.textContent = JSON.stringify(data, null, 2);
+    postureEl.textContent = data.posture ?? "---";
 
-  if (!Array.isArray(data.landmarks)) return;
+    if (data.metrics) {
+      const t = Math.abs(data.metrics.torso_angle ?? 0);
+      const n = Math.abs(data.metrics.neck_angle ?? 0);
+      const s = Math.abs(data.metrics.shoulder_tilt ?? 0);
+      scoreEl.textContent =
+        Math.max(0, Math.round(100 - (t*2 + n*3 + s*1.5)));
+    }
 
-  const W = canvas.width, H = canvas.height;
-  const edges = data.connections?.length ? data.connections : DEFAULT_EDGES;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(0,200,255,0.9)";
-  ctx.fillStyle   = "#00FF7F";
+    if (!Array.isArray(data.landmarks)) return;
 
-  edges.forEach(([a,b]) => {
-    const pa = data.landmarks[a];
-    const pb = data.landmarks[b];
-    if (!pa || !pb) return;
-    ctx.beginPath();
-    ctx.moveTo(pa.x * W, pa.y * H);
-    ctx.lineTo(pb.x * W, pb.y * H);
-    ctx.stroke();
-  });
+    const W = canvas.width, H = canvas.height;
+    const edges = data.connections?.length ? data.connections : DEFAULT_EDGES;
 
-  for (const p of data.landmarks) {
-    ctx.beginPath();
-    ctx.arc(p.x * W, p.y * H, 4, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(0,200,255,0.9)";
+    ctx.fillStyle   = "#00FF7F";
+
+    edges.forEach(([a,b]) => {
+      const pa = data.landmarks[a];
+      const pb = data.landmarks[b];
+      if (!pa || !pb) return;
+      ctx.beginPath();
+      ctx.moveTo(pa.x * W, pa.y * H);
+      ctx.lineTo(pb.x * W, pb.y * H);
+      ctx.stroke();
+    });
+
+    for (const p of data.landmarks) {
+      ctx.beginPath();
+      ctx.arc(p.x * W, p.y * H, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
-}
 </script>
-
-
 </body>
 </html>
