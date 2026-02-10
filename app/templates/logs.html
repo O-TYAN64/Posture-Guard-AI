@@ -324,12 +324,13 @@
     /* =========================
        Login box
     ========================= */
-    .login-fixed{
-      position:fixed;
-      top:24px;
-      right:24px;
-      z-index:1000;
+    .login-fixed {
+        position:fixed;
+        top:24px;
+        right: clamp(16px, 6vw, 250px);
+        z-index:1000;
     }
+
     .login-box{
       background:rgba(82, 79, 79, 0.92);
       padding:10px 18px;

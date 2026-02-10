@@ -57,10 +57,10 @@ header p {
    ログインボックス
 ========================= */
 .login-fixed {
-    position: fixed;
+    position:fixed;
     top:24px;
-    right:24px;
-    z-index: 1000;
+    right: clamp(16px, 6vw, 500px);
+    z-index:1000;
 }
 
 .login-box{
