@@ -140,7 +140,7 @@ def calibrate():
 def show_logs():
     page = int(request.args.get('page', 1))
 
-    # ★ ここが最大の修正点：ユーザーごとの動的モデルを取得して query する
+    # ユーザーごとの動的モデルを取得して query する
     LogModel = PostureLog(current_user.username)
     db.create_all()  # 念のため（初回ユーザー）
 
@@ -174,8 +174,8 @@ def show_logs():
             last_time = log.created_at
             continue
 
-        # 2秒以上間隔があれば追加
-        if time_diff >= 2:
+        # 2.5秒以上間隔があれば追加
+        if time_diff >= 2.5:
             current_page.append(log)
             last_time = log.created_at
 
