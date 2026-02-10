@@ -58,9 +58,8 @@ header p {
 ========================= */
 .login-fixed {
     position: fixed;
-    top: 24px;
-    left: 40%;
-    transform: translateX(600px); /* max-width / 2 */
+    top:24px;
+    right:24px;
     z-index: 1000;
 }
 
@@ -130,6 +129,7 @@ header p {
     flex-direction: column;
     align-items: center;
 }
+
 /* =========================
    修正版：status-box 内ボタン整理
 ========================= */
@@ -308,6 +308,7 @@ header p {
 #logBtn:hover {
     transform: translateY(-2px);
 }
+
 /* =========================
    ミニボタン（プライバシー / カメラ 共通）
 ========================= */
@@ -340,11 +341,6 @@ header p {
 /* =========================
    状態表現
 ========================= */
-
-/* プライバシー ON */
-/* #privacyBtn.active {
-
-} */
 
 /* カメラ OFF */
 #toggleCameraBtn.off {
@@ -423,6 +419,7 @@ header p {
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     border: 1px solid #ffffff;
 }
+
 #register {
     width: 100%;
     border: none;
