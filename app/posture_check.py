@@ -65,6 +65,7 @@ class EMA:
 # =========================
 
 def get_log_model_for_current_user():
+    
     """
     current_user.username から動的な PostureLog モデルクラスを取得する。
     ※ current_user が使えるのはリクエスト中のみ
