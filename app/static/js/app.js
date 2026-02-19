@@ -1,6 +1,6 @@
-// =========================
-// DOM（HTMLに合わせたID）
-// =========================
+/*=========================
+  要素の取得
+========================= */
 const video       = document.getElementById("camera");
 const postureEl   = document.getElementById("posture");
 const messageEl   = document.getElementById("message");
@@ -19,9 +19,9 @@ const startIcon = startBtn.querySelector("img");
 const startText = startBtn.querySelector("span");
 
 
-// =========================
-// 状態
-// =========================
+/*=========================
+  状態変数
+========================= */
 let stream        = null;
 let cameraOn      = false;
 let streaming     = false;
@@ -51,15 +51,15 @@ const DEFAULT_POSE_EDGES = [
 const DEBUG = true;
 const log   = (...a) => DEBUG && console.log("[PG]", ...a);
 
-// =========================
-// 初期化
-// =========================
+/*=========================
+  起動時の初期表示
+========================= */
 startBtn.classList.add("hidden");   // display:none は使わない
 updatePrivacyUI(true);
 
-// =========================
-// ユーティリティ
-// =========================
+/*=========================
+  オーバーレイ（骨格描画用canvas）準備
+========================= */
 function ensureOverlay() {
   if (!overlay) {
     overlay = document.createElement("canvas");
@@ -146,9 +146,9 @@ function restartStreamingLoop() {
   }, POLL_INTERVAL_MS);
 }
 
-// =========================
-// カメラ起動
-// =========================
+/*=========================
+  カメラ起動
+========================= */
 async function startCamera() {
   requestNotificationPermission();
 
@@ -180,10 +180,9 @@ async function startCamera() {
   cameraOn = true;
 }
 
-// =========================
-// カメラ ON / OFF
-// =========================
-
+/*=========================
+  カメラON/OFF
+========================= */
 toggleBtn.addEventListener("click", async () => {
   if (cameraOn) {
     // --- OFF ---
@@ -231,10 +230,9 @@ toggleBtn.addEventListener("click", async () => {
   }
 });
 
-// =========================
-// プライバシーモード切替
-// OFF → 骨格描画可能、ON → 骨格抑止
-// =========================
+/*=========================
+  プライバシーON/OFF
+========================= */
 privacyBtn.addEventListener("click", async () => {
   const next = !privacyOn;
   updatePrivacyUI(next);
@@ -251,9 +249,10 @@ privacyBtn.addEventListener("click", async () => {
 });
 
 
-// =========================
-// 計測 / キャリブレーション
-// =========================
+/*=========================
+  骨格表示切替
+========================= */
+skeletonBtn.addEventListener("click", () => {
 startBtn.onclick = async () => {
   if (!cameraOn) return;
 
@@ -287,9 +286,9 @@ startBtn.onclick = async () => {
   }
 };
 
-// =========================
-// 1フレーム送信（静止画のみ送る）
-// =========================
+/*=========================
+  フレーム送信
+========================= */
 async function sendFrame(url) {
   if (!cameraOn || !video.srcObject) {
     return { posture: "unknown" };
@@ -319,9 +318,9 @@ async function sendFrame(url) {
   }
 }
 
-// =========================
-// UI更新（姿勢結果）
-// =========================
+/* =========================
+  UI更新（姿勢結果）
+========================= */
 function updateUI(data) {
   // 初期化
   postureEl.className = "posture";
@@ -352,12 +351,12 @@ function updateUI(data) {
 }
 
 
-// =========================
-// サーバー返却のランドマークを描画
-// landmarks: [{x,y,z,visibility,presence}...] (x,yは0..1)
-// connections: [[a,b], ...]
-// posture: "good"|"bad" → 色分け
-// =========================
+/*=========================
+  サーバー返却のランドマークを描画
+  landmarks: [{x,y,z,visibility,presence}...] (x,yは0..1)
+  connections: [[a,b], ...]
+  posture: "good"|"bad" → 色分け
+ ========================= */
 function drawSkeletonFromServer(landmarks, connections, posture) {
   if (!overlay || !ctx || !landmarks || landmarks.length === 0) return;
 
@@ -400,9 +399,9 @@ function drawSkeletonFromServer(landmarks, connections, posture) {
   }
 }
 
-// =========================
-// 通知
-// =========================
+/*=========================
+  通知
+========================= */
 function requestNotificationPermission() {
   if (!("Notification" in window)) return;
   if (Notification.permission === "default") {
@@ -422,18 +421,17 @@ function notifyPosture(message) {
     icon: "/static/models/favicon.ico"
   });
 }
-
-// =========================
-// 画面サイズ変化
-// =========================
+/*=========================
+  ウィンドウリサイズ対応
+========================= */
 window.addEventListener("resize", () => {
   if (video.videoWidth) fitCanvasToVideo();
 });
 
 
-// =========================
-// 起動時の初期表示
-// =========================
+/*=========================
+  起動時の初期表示
+========================= */
 window.addEventListener("DOMContentLoaded", () => {
   updatePrivacyUI(true);
   postureEl.textContent = "OFF";

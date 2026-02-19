@@ -52,13 +52,15 @@
   let streaming = false;
   let timerId = null;
 
-  // ===== skeleton edges =====
+  /* デフォルトの骨格接続 (MediaPipe Pose) */
   const DEFAULT_EDGES = [
     [11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],
     [23,25],[25,27],[24,26],[26,28],[27,29],[29,31],[28,30],[30,32],[0,11],[0,12]
   ];
 
-  // ===== カメラ起動 =====
+/* ============================
+   カメラ起動 & 定期送信
+============================ */
   startBtn.onclick = async () => {
     if (streaming) return;
 
@@ -80,7 +82,9 @@
     timerId = setInterval(captureAndSend, 1000);
   };
 
-  // ===== キャリブレーション =====
+  /* ============================
+   キャリブレーション
+============================ */
   calBtn.onclick = async () => {
     if (!streaming) {
       alert("先に START を押してください");
@@ -93,7 +97,9 @@
       data.status === "calibrated" ? "CALIBRATED" : "FAILED";
   };
 
-  // ===== 共通：フレーム送信 =====
+  /* ============================
+   フレーム送信
+============================ */
   async function sendFrame(url) {
     if (!video.videoWidth) return {};
 
@@ -117,13 +123,17 @@
     return await res.json();
   }
 
-  // ===== 通常解析 =====
+  /* ============================
+   フレームキャプチャ & 送信
+============================ */
   async function captureAndSend() {
     const data = await sendFrame("/analyze");
     updateUI(data);
   }
 
-  // ===== UI更新 =====
+  /* ============================
+   UI更新
+============================ */
   function updateUI(data) {
     jsonEl.textContent = JSON.stringify(data, null, 2);
     postureEl.textContent = data.posture ?? "---";
