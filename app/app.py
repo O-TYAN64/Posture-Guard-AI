@@ -26,22 +26,22 @@ app.config.from_object(Config)
 db.init_app(app)
 login_manager.init_app(app)
 
-# -----------------------------
+# =========================
 # Login Manager
-# -----------------------------
+# =========================
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# -----------------------------
+# =========================
 # Blueprint 登録
-# -----------------------------
+# =========================
 app.register_blueprint(auth)
 
-# -----------------------------
+# =========================
 # DB 初期化
 # （静的なテーブル(User, Problem等)はここで作る）
-# -----------------------------
+# =========================
 with app.app_context():
     db.create_all()
 
@@ -59,21 +59,14 @@ def index():
     problems = Problem.query.all()
     return render_template("index.html", problems=problems)
 
-
-@app.route("/problem/<int:id>")
-def show_problem(id):
-    p = Problem.query.get(id)
-    return render_template("problem.html", problem=p)
-
-
 @app.route("/debug")
 def debug():
     return render_template("debug.html")
 
 
-# -----------------------------
+# =========================
 # 画像解析
-# -----------------------------
+# =========================
 @app.post("/analyze")
 @login_required
 def analyze():
@@ -108,9 +101,9 @@ def analyze():
     })
 
 
-# -----------------------------
+# =========================
 # キャリブレーション
-# -----------------------------
+# =========================
 @app.route("/calibrate", methods=["POST"])
 @login_required
 def calibrate():
@@ -132,9 +125,9 @@ def calibrate():
     })
 
 
-# -----------------------------
+# =========================
 # ログ表示
-# -----------------------------
+# =========================
 @app.route('/logs')
 @login_required
 def show_logs():

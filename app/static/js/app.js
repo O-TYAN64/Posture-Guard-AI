@@ -284,7 +284,8 @@ startBtn.onclick = async () => {
     // startIcon.src = "/static/models/calibrate.svg";
     startText.textContent = "キャリブレーション";
   }
-};
+}
+});
 
 /*=========================
   フレーム送信
@@ -421,6 +422,7 @@ function notifyPosture(message) {
     icon: "/static/models/favicon.ico"
   });
 }
+
 /*=========================
   ウィンドウリサイズ対応
 ========================= */
@@ -439,7 +441,3 @@ window.addEventListener("DOMContentLoaded", () => {
   cameraIcon.src = "/static/models/camera-on.svg";
   cameraText.textContent = "Camera ON";
 });
-
-
-
-

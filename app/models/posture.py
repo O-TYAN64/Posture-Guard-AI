@@ -1,8 +1,12 @@
+# =========================
 # models/posture.py
+# =========================
+
 from extensions import db
 from datetime import datetime
-
+# =========================
 # グローバルキャッシュ
+# =========================
 POSTURE_LOG_MODELS = {}
 
 def get_posture_log_model(username):

@@ -1,8 +1,15 @@
+# =========================
+# models/admin.py
+# =========================
+
 from flask import Flask
 from extensions import db
 from models.user import User
 from werkzeug.security import generate_password_hash
 
+# =========================
+# 管理者ユーザーの初期化
+# =========================
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"

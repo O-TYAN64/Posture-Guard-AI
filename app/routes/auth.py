@@ -1,3 +1,7 @@
+# =========================
+# routes/auth.py
+# =========================
+
 from flask import Blueprint, render_template, request, redirect, url_for,flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user
@@ -5,7 +9,9 @@ from extensions import db
 from models.user import User
 
 auth = Blueprint("auth", __name__)
-
+# =========================
+# 認証関連のルート
+# =========================
 @auth.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
@@ -25,6 +31,9 @@ def register():
         return redirect(url_for("auth.login"))
     return render_template("register.html")
 
+# =========================
+# ログイン・ログアウト
+# =========================
 @auth.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
