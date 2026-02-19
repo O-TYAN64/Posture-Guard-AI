@@ -103,23 +103,14 @@ MediaPipe Pose による人体推定をベースに、
 ```
 Posture-Guard-AI/
 ├── app/
-│   ├── app.py              # Flaskアプリのエントリーポイント
-│   ├── config.py           # アプリ設定
-│   ├── extensions.py       # DBやLoginManagerの初期化
-│   ├── posture_check.py    # 姿勢判定ロジック
-│   ├── models/             # DBモデル
-│   │   └── user.py         # ユーザーモデル
-│   ├── routes/             # ルーティング
-│   │   └── auth.py         # 認証関連ルート
-│   ├── static/             # 静的ファイル
-│   │   ├── css/
-│   │   └── app.css         # スタイルシート
-│   │   └── js/
-│   │       └── app.js      # クライアントサイドのJava
-│   └── templates/          # HTMLテンプレート
-│       ├── index.html      # メイン画面
-│       └── login.html      # ログイン画面
-├── images/                 # アイコンやデモ画像
+│   ├── models/        # models
+│   ├── routes/        # Routing (auth etc.)
+│   ├── static/        # CSS / JS / icons / AI model
+│   ├── templates/     # HTML templates
+│   ├── app.py         # Entry point
+│   ├── config.py      # App config
+│   └── posture_check.py
+├── images/            # Demo images
 ├── README.md
 └── LICENSE
 ```
