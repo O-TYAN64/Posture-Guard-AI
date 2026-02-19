@@ -147,6 +147,12 @@ venv\Scripts\activate   # Windows
 source venv/bin/activate # macOS / Linux
 ```
 
+### 3️⃣ 依存パッケージをインストール
+
+```bash 
+pip install -r requirements.txt
+```
+
 ### 4️⃣ アプリ起動
 
 ```bash
