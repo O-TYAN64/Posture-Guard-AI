@@ -46,6 +46,7 @@
       width:100% !important;
       height:100% !important;
       display:block;
+      font-family:'Courier New', monospace;
       background: rgba(255,255,255,0.02);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 10px;
@@ -513,7 +514,7 @@ const verticalMarkerPlugin = {
 ============================ */
 const mainChart = new Chart(document.getElementById('postureChart'), {
   type:'line',
-  data:{
+    data:{
     datasets:[
       { label:'体幹角度', data:torsoSeries, parsing:false, borderColor:'#4CAF50',
         backgroundColor:'rgba(76,175,80,0.18)', tension:0.25, pointRadius:0, borderWidth:2, spanGaps:true },
@@ -527,20 +528,37 @@ const mainChart = new Chart(document.getElementById('postureChart'), {
     responsive:true,
     maintainAspectRatio:false,
     normalized:true,
+    // ▼ 全体の既定フォント（任意）
+    font: {
+      size: 16,                     // ここを変えると未指定部分に効く
+      // family: 'Inter, system-ui, sans-serif',
+      // weight: 'normal'
+    },
     interaction:{ mode:'index', intersect:false },
     plugins:{
-      legend:{ labels:{ color:'#eee', boxWidth:14, boxHeight:10 } },
+      legend:{
+        labels:{
+          color:'#eee',
+          boxWidth:14, boxHeight:10,
+          // ▼ 凡例ラベルのフォントサイズ
+          font: { size: 13 }
+        }
+      },
       tooltip:{
         mode:'index', intersect:false,
         backgroundColor:'rgba(20,20,20,0.92)',
-        borderColor:'rgba(255,255,255,0.12)',
-        borderWidth:1,
+        borderColor:'rgba(255,255,255,0.12)', borderWidth:1,
         titleColor:'#fff', bodyColor:'#eee',
         padding:12,
+
+        // ▼ ツールチップのフォントサイズ（タイトルと本文で別指定）
+        titleFont: { size: 15, weight: 'bold' },
+        bodyFont:  { size: 15},
+
         callbacks:{
           title(items){
             const ms = items[0].parsed.x;
-            return luxon.DateTime.fromMillis(ms).toFormat("yyyy-LL-dd HH:mm:ss");
+            return luxon.DateTime.fromMillis(ms).toFormat("HH:mm:ss");
           }
         }
       },
@@ -550,14 +568,25 @@ const mainChart = new Chart(document.getElementById('postureChart'), {
     scales:{
       x:{
         type:'time',
-        min:xMinAll,
-        max:xMaxAll,
+        min:xMinAll, max:xMaxAll,
         grid:{ color:'rgba(255,255,255,0.08)' },
-        ticks:{ color:'#eee', maxRotation:0, autoSkip:true }
+        ticks:{
+          color:'#eee', maxRotation:0, autoSkip:true,
+          // ▼ X軸目盛のフォントサイズ
+          font: { size: 12 }
+        },
+        // （必要なら）軸タイトルのサイズ
+        title: { display:true, text:'', font:{ size: 1 } }
       },
       y:{
         grid:{ color:'rgba(255,255,255,0.08)' },
-        ticks:{ color:'#eee' }
+        ticks:{
+          color:'#eee',
+          // ▼ Y軸目盛のフォントサイズ
+          font: { size: 12 }
+        },
+        // （必要なら）軸タイトルのサイズ
+        title: { display:true, text:'', font:{ size: 13 } }
       }
     }
   },
