@@ -9,6 +9,7 @@ from extensions import db
 from models.user import User
 
 auth = Blueprint("auth", __name__)
+
 # =========================
 # 認証関連のルート
 # =========================

@@ -18,7 +18,6 @@ from extensions import db
 # =========================
 # Config / Baseline
 # =========================
-
 POSE_CONNECTIONS = [
     (11, 13), (13, 15),
     (12, 14), (14, 16),
@@ -48,7 +47,6 @@ class PostureBaseline:
 # =========================
 # EMA
 # =========================
-
 class EMA:
     def __init__(self, a: float):
         self.a = a
@@ -67,7 +65,6 @@ class EMA:
 # =========================
 # Utils: 動的モデル取得
 # =========================
-
 def get_log_model_for_current_user():
     
     """
@@ -88,7 +85,6 @@ def get_log_model_for_current_user():
 # =========================
 # Recorder
 # =========================
-
 class PostureRecorder:
     def save(self, metrics, judge, posture_type):
         LogModel = get_log_model_for_current_user()
@@ -118,7 +114,6 @@ def classify_posture(m, cfg: PostureConfig):
 # =========================
 # Calibrator
 # =========================
-
 class PostureCalibrator:
     def __init__(self):
         self.buf = []
@@ -135,7 +130,6 @@ class PostureCalibrator:
 # =========================
 # Analyzer
 # =========================
-
 class PosePostureAnalyzer:
     def __init__(self, model_path: str, cfg: PostureConfig):
         self.cfg = cfg
