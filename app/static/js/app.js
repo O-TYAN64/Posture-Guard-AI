@@ -252,7 +252,7 @@ privacyBtn.addEventListener("click", async () => {
 /*=========================
   骨格表示切替
 ========================= */
-skeletonBtn.addEventListener("click", () => {
+startBtn.addEventListener("click", () => {
 startBtn.onclick = async () => {
   if (!cameraOn) return;
 
