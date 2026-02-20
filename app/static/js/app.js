@@ -250,7 +250,7 @@ privacyBtn.addEventListener("click", async () => {
 
 
 /*=========================
-  骨格表示切替
+  計測開始 / キャリブレーション
 ========================= */
 startBtn.addEventListener("click", () => {
 startBtn.onclick = async () => {
@@ -435,7 +435,7 @@ window.addEventListener("resize", () => {
   起動時の初期表示
 ========================= */
 window.addEventListener("DOMContentLoaded", () => {
-  updatePrivacyUI(true);
+  updatePrivacyUI(false);
   postureEl.textContent = "OFF";
   messageEl.textContent = "カメラはオフです";
   cameraIcon.src = "/static/models/camera-on.svg";
