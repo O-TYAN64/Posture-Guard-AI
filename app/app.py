@@ -16,7 +16,7 @@ from extensions import db, login_manager
 
 from models.problem import Problem
 from models.user import User
-from models.posture import PostureLog  # ← これは「関数」
+from models.posture import PostureLog
 from datetime import timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
