@@ -194,47 +194,5 @@ def show_logs():
 
     return render_template('logs.html', logs=page_logs, page=page, has_next=has_next)
 
-@app.route('/logs/stream')
-@login_required
-def stream_logs():
-    # 直近の送信済み時刻をクエリパラメータで受け取れるようにしても良い
-    def event_stream():
-        last_sent_at = datetime.utcnow() - timedelta(seconds=1)
-        while True:
-            # ユーザーごとの動的モデル
-            LogModel = PostureLog(current_user.username)
-
-            # 直近 last_sent_at 以降の新規ログを取得
-            new_logs = (LogModel.query
-                        .filter(LogModel.user_id == current_user.id,
-                                LogModel.created_at > last_sent_at)
-                        .order_by(LogModel.created_at.asc())
-                        .all())
-
-            if new_logs:
-                # SSEのデータは1行でJSONを送るのが一般的
-                payload = []
-                for log in new_logs:
-                    payload.append({
-                        "id": log.id,
-                        "created_at": log.created_at.isoformat(),
-                        "message": log.message,  # カラム名に合わせて
-                        # 必要に応じて他のフィールド
-                    })
-                    last_sent_at = log.created_at
-
-                yield f"data: {payload}\n\n"  # SSEフォーマット（空行で区切る）
-
-            time.sleep(1)  # 負荷対策：1秒おきにチェック
-
-    headers = {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "X-Accel-Buffering": "no"  # Nginxでバッファされないように
-    }
-    return Response(stream_with_context(event_stream()), headers=headers)
-
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True, threaded=True)
