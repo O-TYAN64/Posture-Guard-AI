@@ -146,7 +146,7 @@ def show_logs():
     query = (
         LogModel.query
         .filter_by(user_id=current_user.id)
-        .order_by(LogModel.created_at.asc())
+        .order_by(LogModel.created_at.asc())  
     )
     logs = query.all()
 
@@ -181,10 +181,15 @@ def show_logs():
     if current_page:
         pages.append(current_page)
 
-    # ページ番号に応じて出力
-    if page - 1 < len(pages):
-        page_logs = pages[page - 1]
-        has_next = page < len(pages)
+    # ▼ ここから追記：最新が先頭になるように並べ替え
+    # ページ全体を「最新ページが先頭」になるように反転し、
+    # 各ページ内も「新しいログが先頭」になるように反転する
+    pages_desc = [list(reversed(p)) for p in reversed(pages)]
+
+    # ページ番号に応じて出力（1ページ目 = 最新ページ）
+    if 1 <= page <= len(pages_desc):
+        page_logs = pages_desc[page - 1]
+        has_next = page < len(pages_desc)
     else:
         page_logs = []
         has_next = False
