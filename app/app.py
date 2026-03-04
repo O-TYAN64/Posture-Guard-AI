@@ -6,7 +6,6 @@ from flask import Flask, request, render_template, jsonify
 import os
 import cv2
 import numpy as np
-import time
 
 from posture_check import PosePostureAnalyzer, PostureConfig
 from flask_login import login_required, current_user
@@ -14,8 +13,6 @@ from flask_login import login_required, current_user
 from config import Config
 from routes.auth import auth
 from extensions import db, login_manager
-from flask import Response, stream_with_context
-
 
 from models.problem import Problem
 from models.user import User
