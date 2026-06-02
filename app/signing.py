@@ -14,6 +14,8 @@ _c = (
     "UG9zdHVyZS1HdWFyZC1BSQ==",  # 4
     "CltQb3N0dXJlLUd1YXJkLUFJXSDnkrDlooPjga7jgrvjg4Pjg4jjgqLjg4Pjg5fjgYzlrozkuobjgZfjgabjgYTjgb7jgZvjgpPjgIIKICDotbfli5Xjg4jjg7zjgq/jg7MgKFBHX0FDVElWQVRJT04pIOOBjOacquioreWumuOAgeOBvuOBn+OBr+S4jeato+OBp+OBmeOAggogIOato+OBl+OBhOODiOODvOOCr+ODs+OCkueSsOWig+WkieaVsOOBq+ioreWumuOBl+OBpuOBi+OCieWGjeWun+ihjOOBl+OBpuOBj+OBoOOBleOBhOOAggogIOOCu+ODg+ODiOOCouODg+ODl+aJi+mghuOBr+acrOOCouODl+ODquOBruS9nOiAheOBq+OBlOeiuuiqjeOBj+OBoOOBleOBhOOAggoK",  # 5
     "cGc6OnNlY3JldDo6",          # 6
+    "44OR44K544Ov44O844OJ44KS5YWl5Yqb44GX44Gm44GP44Gg44GV44GEOiA=",  # 7
+    "6KqN6Ki844Gr5aSx5pWX44GX44G+44GX44Gf44CC44KC44GG5LiA5bqm5YWl5Yqb44GX44Gm44GP44Gg44GV44GE44CC",  # 8
 )
 
 _v = "d0f2669dec81d6826249bf12c96709d2cdde6e0d56c2efb21a2f7ce4a894a52f"
@@ -28,6 +30,17 @@ def _q():
     return bool(_r) and _m.compare_digest(_g(_r), _v)
 
 
+def _ask():
+    import getpass as _gp
+    for _i in range(3):
+        _r = _gp.getpass(_d(_c[7]))
+        if _r and _m.compare_digest(_g(_r), _v):
+            _o.environ[_d(_c[1])] = _r  
+            return True
+        print(_d(_c[8]))
+    return False
+
+
 def _p():
     _l = "=" * 50
     print(_l)
@@ -38,8 +51,9 @@ def _p():
 
 def verify_environment():
     if not _q():
-        _s.stderr.write(_d(_c[5]))
-        _s.exit(1)
+        if not _ask():
+            _s.stderr.write(_d(_c[5]))
+            _s.exit(1)
     _p()
 
 def secret_key():
